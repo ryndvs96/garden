@@ -164,7 +164,7 @@
         }
 
         async function init() {
-            const response = await fetch('garden2026.csv');
+            const response = await fetch('data/2026/seeds.csv');
             const text = await response.text();
             const data = parseCSV(text);
 

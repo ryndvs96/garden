@@ -1,0 +1,79 @@
+Allocated?,Seed Company,Plant,Name,Location,Type,Days to maturity,Min DTM,Max DTM,Maturity from (Sowing v Transplant),Frost tolerant?,Height,Where to sow,When to sow weeks w.r.t last frost,When to transplant w.r.t last frost,Notes
+TRUE,Johnny's Seeds,"Bean, Bush",Dragon's Tongue,"bed, bag",bush / flat pod,57,57,,S,N,,outside,1-2 after,,Soak seeds before sowing
+TRUE,Johnny's Seeds,Brussels Sprout,Silvia F1,bag,,103,103,,T,Y,,inside,May,4 months before,Sow 4 months before fall frost
+TRUE,Johnny's Seeds,Celery,Kelvin F1,"bed, bag",,80,80,,T,Y,"24""",inside,6-8 before,,
+TRUE,Johnny's Seeds,"Choi, Bok Choi",Win-Win Choi F1,"bed, bag",,52,52,,T,Y,"12""",inside,4 before,,
+TRUE,Johnny's Seeds,"Choi, Pac Choi",Little Shanghai F1,bed,true mini,37,37,,T,Y,,inside,Early Spring,,Slow bolt
+TRUE,Baker Creek Seeds,"Choi, Bok Choi",Baby Milk,bed,,30,30,,T,Y,,inside,Early Spring,,
+TRUE,Botanical Interests,"Lettuce, Butterhead",Buttercrunch,"bed, bag",,21-65,21,65,S,Y,"8""",inside,4-6 before,,
+TRUE,Johnny's Seeds,"Lettuce, Mini-Romaine",Truchas,"bed, bag",,21-48,21,48,S,Y,"8""",inside,4-6 before,,
+TRUE,Botanical Interests,"Lettuce, Romaine",Little Gem,"bed, bag",,20-68,20,68,S,Y,"12""",inside,4-6 before,,
+TRUE,Botanical Interests,Cucumber,Homemade Pickles,"bed, bag",pickling,55,55,60,S,Y,4' - 5',outside,1-2 after,,
+TRUE,Johnny's Seeds,Cucumber,Salt and Pepper,"bed, bag",pickling,49,49,,S,N,,outside,1-2 after,,
+TRUE,Baker Creek Seeds,"Cucumber, Bush",Dar Cucumber,"bed, bag",,60,60,,S,N,"18""",outside,,,
+TRUE,Botanical Interests,"Herb, Basil",Genovese,"bed, fence",,,,,,,"24""",,,,
+TRUE,Botanical Interests,"Herb, Dill",Tetra,"bed, fence",,,,,,,"18""",,,,
+TRUE,Botanical Interests,"Herb, Mint",Spearmint,"bed, fence",,,,,,,"8""",,,,
+TRUE,Botanical Interests,"Herb, Thyme",English Thyme,"bed, fence",,,,,,,"8""",,,,
+TRUE,Seed Saver's Exchange,Leek,Jaune du Poitou,"bed, bag",,100,100,120,T,Y,"24""",inside,4-6 before,,
+TRUE,Johnny's Seeds,Leek,King Richard,"bed, bag",,75,75,80,T,Y,"24""",inside,8-10 before,,
+TRUE,Amazon,Garlic,Musical,bed,,,,,,,"24""",,,,
+TRUE,Johnny's Seeds,"Onion, Bunching",Deep Purple,"bed, fence",bunching,60,60,,T,Y,,inside,4-6 before,,
+FALSE,Row 7,"Onion, Leeks",Sweet Garleek F1,bed,,95-110,95,110,,,,,,,
+TRUE,Amazon,"Onion, Sets",Sets,bed,mixed,,,,,,"24""",,,,
+TRUE,Johnny's Seeds,"Pepper, Bell",Flavorburst F1,"bed, bag",yellow,67-87,67,87,T,N,,inside,8-10 before transplant,,
+TRUE,Johnny's Seeds,"Pepper, Bell",Olympus F1,"bed, bag",red,65-85,65,85,T,N,,inside,8-10 before transplant,,
+TRUE,Botanical Interests,"Pepper, Chile",Early Jalapeno,"bed, bag",spicy,63,63,68,T,N,3',inside,8-10 before transplant,,
+FALSE,Botanical Interests,"Pepper, Chile",Jalapeno Lemon Spice,"bed, bag",spicy,65,65,,T,N,,inside,8-10 before transplant,,
+TRUE,Baker Creek Seeds,"Pepper, Hot",Aji Mango,bed,"hot, sweet",80-90,80,90,T,N,,inside,8-12 before,,25k SHU
+TRUE,Baker Creek Seeds,"Pepper, Hot",Sugar Rush Peach,bed,"hot, fruity",120,120,,T,N,,inside,8-12 before,,
+TRUE,Baker Creek Seeds,"Pepper, Hot",Sweet Bonnet,bed,"sweet, less heat",80-90,80,90,T,N,,inside,8-12 before,,
+TRUE,Botanical Interests,"Pepper, Sweet",Candy Cane Chocolate Cherry,"bed, bag","sweet, variegated",70-75,70,75,T,N,"18-24""",inside,8-10 before,,
+TRUE,Baker Creek Seeds,"Pepper, Sweet",Giant Aconcagua,"bed, bag","orange, 12in",75,75,,T,N,3ft,inside,8-12 before,,
+TRUE,Botanical Interests,"Pepper, Sweet",Golden Cal Wonder,"bed, bag","sweet, red",65-75,65,75,T,N,"18-24""",inside,8-10 before,,
+TRUE,Johnny's Seeds,"Pepper, Sweet",Lunchbox Pepper Mix,"bed, bag",sweet,75-83,75,83,T,N,"24""",inside,8 before transplanting,,
+TRUE,Botanical Interests,"Pepper, Sweet",Orange Sun,"bed, bag","sweet, orange",70-80,70,80,T,N,"24""",inside,8-10 before,,
+TRUE,Wood Praire Farm,Potato,Adirondack Blue,bag,mid-season,119-133,119,133,S,N,3',outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Adirondack Red,bag,mid-season,119-133,119,133,S,N,3',outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,All Blue,bag,late-season,126-140,126,140,S,N,3',outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Caribé,bag,early-season,105-119,105,119,S,N,3',outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Huckleberry Gold,bag,mid-season,119-133,119,133,S,N,3',outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Keuka Gold,bag,mid-late season,112-140,112,140,S,N,3',outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Sarpo Mira,bag,late-season,126-140,126,140,S,N,3',outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Yukon Gold,bag,early-season,105-119,105,119,S,N,3',outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Johnny's Seeds,"Pumpkin, Jack-o-Lantern",Racer F1,compost,12-16lb,85,85,,S,Y,,inside,2-3 before,,
+TRUE,Johnny's Seeds,"Pumpkin, Specialty",Blaze,compost,2.5-3.5lb,95,95,,S,Y,,inside,2-3 before,,
+TRUE,Johnny's Seeds,"Squash, Spaghetti",Angel Hair F1,bed,yellow,88,88,,S,N,,inside,2-3 before,,
+TRUE,Johnny's Seeds,"Squash, Summer",Zephyr F1,"bed, bag",yellow/green,54,54,,S,N,,inside,2-3 before,,
+TRUE,Botanical Interests,"Tomato, Bush Cherry",Patio Choice Yellow,"bed, bag","cherry, determinate",45,45,50,T,N,"18""",inside,4-6 before,,
+TRUE,Johnny's Seeds,"Tomato, Cherry",Gold Nugget,"bed, bag",determinate,56,56,,T,N,,inside,5-6 before,,
+FALSE,Johnny's Seeds,"Tomato, Paste",Sunrise Sauce,"bed, bag",determinate,57,57,,T,N,,inside,5-6 before,,
+FALSE,Botanical Interests,"Tomato, Pole Cherry",Sun Gold,"bed, bag","cherry, indeterminate",57,57,62,T,N,,inside,4-6 before transplanting,,
+TRUE,Botanical Interests,"Tomato, Pole Roma",San Marzano,"bed, bag","paste, indeterminate",70-90,70,90,T,N,,inside,4-6 before,,
+FALSE,Row 7,"Tomato, Roma",Midnight Roma,"bed, bag",,,,,,,,,,,
+TRUE,Botanical Interests,"Tomato, Roma",Supremo,"bed, bag",bush,68,68,,T,N,,inside,,,
+TRUE,Baker Creek Seeds,Melon,Rich Sweetness,bed,,80,80,,T,N,,outside,1-2 after,,
+TRUE,Baker Creek Seeds,Watermelon,Early Girl,bed,"red, 1-4lb",65,65,,T,N,,outside,1-2 after,,
+TRUE,Baker Creek Seeds,Watermelon,Lemon Drop,bed,"yellow, 1-2lb",70,70,,T,N,,outside,1-2 after,,
+TRUE,Johnny's Seeds,"Watermelon, Hybrid Diploid Watermelon",New Orchid F1,bed,orange,80,80,85,T,N,,inside,3-4 before transplanting,,
+TRUE,Johnny's Seeds,"Watermelon, Hybrid Triploid Watermelon",Ocelot F1,bed,"seedless, red",80,80,85,T,N,,inside,"3 before soil is 65+, after frost",,
+TRUE,Johnny's Seeds,"Watermelon, Hybrid Triploid Watermelon",Onza F1,bed,3-5lb,87,87,,T,N,,inside,,,
+TRUE,Botanical Interests,"Flower, Alyssum, Sweet",Allure Pastel Blend,"bed, fence",,,,,,N,,inside,4-6 before,,
+TRUE,Baker Creek Seeds,"Flower, Bachelor's Buttons",Fireworks,"bed, fence","red, white, blue",,,,S,N,30in,outside,Early Spring,,
+FALSE,Botanical Interests,"Flower, Black-Eyed Susan",Black-Eyed Susan,"bed, fence",,,,,,N,,inside,8-10 before,,
+FALSE,Botanical Interests,"Flower, Black-Eyed Susan Vine",Black-Eyed Susan Vine,bed,,,,,,N,,inside,6-8 before,,
+FALSE,Botanical Interests,"Flower, Lavender",English Tall / Vera,"bed, fence",,,,,,Y,,inside,10-12 before,,
+TRUE,Botanical Interests,"Flower, Lavender",Munstead,"bed, fence",,,,,,Y,,inside,10-12 before,,
+TRUE,Johnny's Seeds,"Flower, Nasturtium",Bloody Mary,"bed, fence",,55-65,55,65,S,N,,inside,2-3 before,,Can also sow indoors
+TRUE,Botanical Interests,"Flower, Nasturtium",Alaska Variegated,"bed, fence",,,,,,N,,outside,1-2 after,,
+TRUE,Johnny's Seeds,"Flower, Snapdragon",Johnny's Potomac Custom Mix,"bed, fence",,110-120,110,120,S,N,,inside,8-10 before,,
+FALSE,Botanical Interests,"Flower, Snapdragon",Orange Winter,"bed, fence",,,,,,N,,inside,8-10 before,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Arikara,compost,"yellow, heirloom",,,,S,N,10ft,outside,2-3 before,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Chocolate Cherry,compost,"red, purple",,,,S,N,6-7ft,outside,2-3 before,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Hopi Back Dye,compost,"green, yellow",,,,S,N,8ft,outside,2-3 before,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Mongolian Giant,compost,yellow,,,,S,N,14ft,outside,2-3 before,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Titan,compost,yellow,,,,S,N,,outside,2-3 before,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Mammoth Grey Striped,compost,yellow,,,,S,N,10ft,outside,2-3 before,,
+FALSE,Johnny's Seeds,"Flower, Zinnia",Jazzy Mix,"bed, fence",,75-85,75,85,S,N,,inside,4 before,,Very sensitive to frost
+FALSE,Botanical Interests,"Flower, Zinnia",Cut and Come Again,"bed, fence",,,,,,N,,outside,1-2 after,,
+FALSE,Botanical Interests,"Flower, Zinnia",Thumbelina,"bed, fence",,,,,,N,,outside,1-2 after,,

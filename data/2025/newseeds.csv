@@ -1,0 +1,95 @@
+Buy?,Seed Company,Plant,Name,Location,Type,Priority,Days to maturity,Min DTM,Max DTM,Maturity from (Sowing v Transplant),Frost tolerant?,Height,Where to sow,When to sow weeks w.r.t last frost,When to transplant w.r.t last frost,Notes
+TRUE,Wood Praire Farm,Potato,Caribé,bag,early-season,3,105-119,105,119,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Yukon Gold,bag,early-season,3,105-119,105,119,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Adirondack Blue,bag,mid-season,3,119-133,119,133,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Adirondack Red,bag,mid-season,3,119-133,119,133,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+FALSE,Wood Praire Farm,Potato,Rose Gold,bag,mid-season,3,119-133,119,133,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Huckleberry Gold,bag,mid-season,3,119-133,119,133,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+FALSE,Wood Praire Farm,Potato,Aroostook Red,bag,mid-season,3,119-133,119,133,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Keuka Gold,bag,mid-late season,3,112-140,112,140,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,Sarpo Mira,bag,late-season,3,126-140,126,140,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Wood Praire Farm,Potato,All Blue,bag,late-season,3,126-140,126,140,S,N,N/A,outside,1-2 before,,Chit 4-6 weeks before sowing
+TRUE,Johnny's Seeds,"Bean, Bush",Dragon's Tongue,"bed, bag",bush / flat pod,3,57,57,,S,N,,outside,1-2 after,,Soak seeds before sowing
+TRUE,Johnny's Seeds,Brussels Sprout,Silvia F1,bag,,3,103,103,,T,Y,,inside,May,,Sow 4 months before fall frost
+TRUE,Johnny's Seeds,Pac Choi,Little Shanghai F1,bed,true mini,2,37,37,,T,Y,,inside,Early Spring,,Slow bolt
+FALSE,Johnny's Seeds,"Lettuce, Bibb",Gatsbi,bed,mini bibb,2,52,52,,T,Y,,inside,,,
+FALSE,Johnny's Seeds,"Onion, Bunching",Yago F1,"bed, fence",bunching,2,55,55,,T,Y,,inside,,,
+TRUE,Johnny's Seeds,"Onion, Bunching",Deep Purple,"bed, fence",bunching,3,60,60,,T,Y,,inside,,,
+TRUE,Johnny's Seeds,"Pepper, Bell",Flavorburst F1,"bed, bag",yellow,2,67-87,67,87,T,N,,inside,,,
+TRUE,Johnny's Seeds,"Pepper, Bell",Olympus F1,"bed, bag",red,2,65-85,65,85,T,N,,inside,,,
+FALSE,Johnny's Seeds,"Pepper, Fresno",Flaming Flare F1,"bed, bag",,2,67-77,67,77,T,N,,inside,,,
+TRUE,Johnny's Seeds,"Pumpkin, Jack-o-Lantern",Racer F1,compost,12-16lb,3,85,85,,S,Y,,outside,,,
+FALSE,Johnny's Seeds,"Pumpkin, Jack-o-Lantern",Duchess F1,compost,19-21lb,2,100,100,,S,Y,,outside,,,
+TRUE,Johnny's Seeds,"Pumpkin, Specialty",Blaze,compost,2.5-3.5lb,3,95,95,,S,Y,,outside,,,
+FALSE,Johnny's Seeds,"Squash, Zucchini",E. Maveric F1,bag,green,1,42,42,,S,N,,outside,,,
+FALSE,Johnny's Seeds,"Squash, Summer",Butterfingers F1,bag,yellow,1,52,52,,S,N,,outside,,,
+TRUE,Johnny's Seeds,"Squash, Summer",Zephyr F1,"bed, bag",yellow/green,2,,,,S,N,,outside,,,
+FALSE,Johnny's Seeds,"Squash, Patty Pan",Y-Star F1,"bed, bag",yellow,1,50,50,,S,N,,outside,,,
+TRUE,Johnny's Seeds,"Squash, Spaghetti",Angel Hair F1,bed,yellow,3,88,88,,S,N,,outside,,,
+FALSE,Johnny's Seeds,"Tomato, Paste",Blue Beech,"bed, bag",indeterminate,2,82,82,,T,N,,inside,5-6 before,,
+FALSE,Johnny's Seeds,"Tomato, Small",Tomatoberry Garden F1,"bed, bag",indeterminate,2,60,60,,T,N,,inside,5-6 before,,
+FALSE,Johnny's Seeds,"Tomato, Small",Indigo Kumquat F1,"bed, bag",indeterminate,2,75,75,,T,N,,inside,5-6 before,,
+TRUE,Johnny's Seeds,"Tomato, Cherry",Gold Nugget,"bed, bag",determinate,3,56,56,,T,N,,inside,5-6 before,,
+TRUE,Johnny's Seeds,"Tomato, Paste",Sunrise Sauce,"bed, bag",determinate,2,57,57,,T,N,,inside,5-6 before,,
+TRUE,Johnny's Seeds,"Watermelon, Seedless",Onza F1,bed,3-5lb,3,87,87,,T,N,,inside,,,
+FALSE,Johnny's Seeds,"Watermelon, Diploid",Sureness F1,bed,"8-10lb, yellow",2,75,75,,T,N,,inside,,,
+FALSE,Johnny's Seeds,Chives,Dolores,fence,,2,75-85,75,85,T,Y,,inside,,,
+TRUE,Johnny's Seeds,"Flower, Nasturtium",Bloody Mary,"bed, fence",,2,55-65,55,65,S,N,,outside,1-2 after,,Can also sow indoors
+FALSE,Johnny's Seeds,"Flower, Snapdragon",Double Frapper Light Pink 2 F1,"bed, fence",,3,110-115,110,115,S,N,,inside,8-10 before,,
+FALSE,Johnny's Seeds,"Flower, Snapdragon",Madame Butterfly Mix,"bed, fence",,3,110-120,110,120,S,N,,inside,8-10 before,,
+TRUE,Johnny's Seeds,"Flower, Snapdragon",Johnny's Potomac Custom Mix,"bed, fence",,3,110-120,110,120,S,N,,inside,8-10 before,,
+FALSE,Johnny's Seeds,"Flower, Statice",Johnny's Statice Formula Mix,"bed, fence",,2,110-120,110,120,S,N,,inside,5-6 before,,
+FALSE,Johnny's Seeds,"Flower, Strawflower",Choice Mix,"bed, fence",,2,75-85,75,85,S,N,,inside,4-6 before,,
+FALSE,Johnny's Seeds,"Flower, Verbena",Verbena bonariensis,"bed, fence",,2,90,90,,S,N,,inside,8-12 before,,
+TRUE,Johnny's Seeds,"Flower, Zinnia",Jazzy Mix,"bed, fence",,3,75-85,75,85,S,N,,inside,4 before,,Very sensitive to frost
+TRUE,Johnny's Seeds,Tools,Hoop Loops,,"16"" wide, 10 ct",,,,,,,,,,,Might be able to make this
+FALSE,Pine Tree Garden Seeds,Leeks,Carantan,"bed, bag",3in diameter,2,100,100,,S,Y,,inside,8-10 before,,
+FALSE,Pine Tree Garden Seeds,Sesame,Shirogoma,bag,white seed,2,85,85,,T,N,,inside,4-5 before,,
+FALSE,Pine Tree Garden Seeds,Strawberries,Seascape,fence,live plant,2,,,,,N,,,,,
+TRUE,Pine Tree Garden Seeds,Tools,Sluggo Plus,,,,,,,,,,,,,
+FALSE,Baker Creek Seeds,"Flower, Bachelor's Buttons",Classic Artistic Mix,"bed, fence","pink, purple, white",2,,,,,N,,,,,
+TRUE,Baker Creek Seeds,"Flower, Bachelor's Buttons",Fireworks,"bed, fence","red, white, blue",2,,,,,N,30in,,,,
+FALSE,Baker Creek Seeds,"Flower, Basketflower",Pink Basketflower,"bed, fence",purple,3,110,110,,,N,2-6ft,,,,
+FALSE,Baker Creek Seeds,"Beans, Bush",Dragon's Tongue,"bed, bag",7in pods,3,60,60,,S,Y,,outside,,,
+TRUE,Baker Creek Seeds,"Cucumber, Bush",Dar Cucumber,"bed, bag",,3,60,60,,S,N,18in,outside,,,
+FALSE,Baker Creek Seeds,Cucumber,Large Dutch Yellow,"bed, bag",,2,65,65,,,N,,,,,
+FALSE,Baker Creek Seeds,Huckleberry,"Schwartzenbeeren ""black-berries""",bag,poisonous unripe,2,70,70,,,N,2-3ft,,,,
+TRUE,Baker Creek Seeds,Melon,Rich Sweetness,bed,,3,,,,,N,,,,,
+TRUE,Baker Creek Seeds,"Pepper, Hot",Sweet Bonnet,bed,"sweet, less heat",3,,,,,N,,,,,
+TRUE,Baker Creek Seeds,"Pepper, Hot",Sugar Rush Peach,bed,,3,,,,,N,,,,,
+FALSE,Baker Creek Seeds,"Pepper, Hot",Fish Pepper,bed,"hot, variegated",2,80,80,,T,N,2ft,,,,
+FALSE,Baker Creek Seeds,"Pepper, Hot",Jigsaw Pepper,bed,"hot, purple",2,90,90,,T,N,,,,,
+FALSE,Baker Creek Seeds,"Pepper, Hot",Trepadeira Werner,bed,"hot, fruity",2,60-70,60,70,T,N,3-5ft,,,,
+TRUE,Baker Creek Seeds,"Pepper, Hot",Aji Mango,bed,"hot, sweet",3,80-90,80,90,T,N,,,,,25k SHU
+FALSE,Baker Creek Seeds,"Pepper, Hot",Black Hungarian Pepper,bed,"hot, black",2,75,75,,T,N,,,,,
+FALSE,Baker Creek Seeds,"Pepper, Sweet",Violet Sparkle,"bed, bag",small purple,2,75,75,,T,N,,,,,
+FALSE,Baker Creek Seeds,"Pepper, Sweet",Blot Pepper,"bed, bag","orange, purple",2,70,70,,T,N,,,,,
+FALSE,Baker Creek Seeds,"Pepper, Sweet",Lesya Pepper,"bed, bag",red,2,75,75,,T,N,,,,,
+TRUE,Baker Creek Seeds,"Pepper, Sweet",Giant Aconcagua,"bed, bag","orange, 12in",3,75,75,,T,N,3ft,,,,
+FALSE,Baker Creek Seeds,"Pepper, Sweet",Sweet Habanada,"bed, bag",,3,80,80,,T,N,,,,,
+FALSE,Baker Creek Seeds,"Pepper, Sweet",Etiuda Pepper,"bed, bag","orange, citrus",2,,,,T,N,,,,,
+FALSE,Baker Creek Seeds,"Pepper, Sweet",Paradicsom Alaku,"bed, bag","yellow, flat",2,80,80,,T,N,,,,,
+FALSE,Baker Creek Seeds,"Tomato, Roma",Pink Fang,"bed, bag",indeterminate,2,70-75,70,75,T,N,,,,,
+FALSE,Baker Creek Seeds,"Flower, Snapdragon",Bizzare Mix,"bed, fence","pink, orange, yellow",3,110,110,,T,N,,,,,
+FALSE,Baker Creek Seeds,"Flower, Snapdragon",Bronze Dragon,"bed, fence",purple,2,100-120,100,120,T,N,12-16in,,,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Arikara,compost,"yellow, heirloom",3,,,,S,N,10ft,,,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Chocolate Cherry,compost,"red, purple",3,,,,S,N,6-7ft,,,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Hopi Back Dye,compost,"green, yellow",3,,,,S,N,8ft,,,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Mongolian Giant,compost,yellow,3,,,,S,N,14ft,,,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Titan,compost,yellow,2,,,,S,N,,,,,
+TRUE,Baker Creek Seeds,"Flower, Sunflower",Mammoth Grey Striped,compost,yellow,3,,,,S,N,10ft,,,,
+FALSE,Baker Creek Seeds,"Flower, Sunflower",Short Stuff,compost,yellow,2,,,,S,N,2.5ft,,,,
+FALSE,Baker Creek Seeds,Watermelon,Kaho,bed,"orange, 2-4lb",2,75,75,,T,N,,,,,
+TRUE,Baker Creek Seeds,Watermelon,Early Girl,bed,"red, 1-4lb",3,65,65,,T,N,,,,,
+TRUE,Baker Creek Seeds,Watermelon,Lemon Drop,bed,"yellow, 1-2lb",3,70,70,,T,N,,,,,
+FALSE,Botanical Interests,Brussels Sprout,Silvia F1,bag,,3,103,103,,T,Y,,inside,May,,Sow 4 months before fall frost
+FALSE,Botanical Interests,Cucumber,Quick Snack,"bed, bag",mini-indoor,2,38-45,38,45,S,N,,inside,,,
+TRUE,Botanical Interests,"Pepper, Sweet",Candy Cane Chocolate Cherry,"bed, bag",,3,70-75,70,75,T,N,,inside,,,
+FALSE,Botanical Interests,"Squash, Summer",Chifon,bag,bush,3,42,42,,S,N,,outside,,,
+TRUE,Botanical Interests,"Tomato, Roma",Supremo,"bed, bag",bush,3,68,68,,T,N,,inside,,,
+FALSE,Botanical Interests,"Flower, Black-eyed Susan",Cherry Brandy,"bed, fence",,2,,,,,N,20-24in,inside,,,
+FALSE,Botanical Interests,"Flower, Black-eyed Susan",Cherokee Sunset,"bed, fence",,2,,,,,N,24-30in,,,,
+TRUE,Botanical Interests,Tools,15G grow bag,,,,,,,,,,,,,
+TRUE,Botanical Interests,Supplies,desk calendar,,,,,,,,,,,,,
+TRUE,Row 7,Leeks,Sweet Garleek F1,bed,,3,95-110,95,110,,,,,,,
+TRUE,Row 7,"Tomato, Roma",Midnight Roma,"bed, bag",,3,,,,,,,,,,
