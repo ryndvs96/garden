@@ -9,14 +9,29 @@ const colorMap = {
     'green': '#28a745'
 };
 
+function splitPlant(value, index) {
+    if (!value) return '-';
+    const parts = value.split(',').map(p => p.trim());
+    return parts[index] || '-';
+}
+
+function renderCategory(value) {
+    return splitPlant(value, 0);
+}
+
+function renderType(value) {
+    return splitPlant(value, 1);
+}
+
 const yearConfig = {
     '2026': {
         file: 'data/2026/seeds.csv',
         columns: [
-            { key: 'Plant', label: 'Plant' },
-            { key: 'Name', label: 'Variety' },
+            { key: 'Plant', label: 'Category', render: renderCategory },
+            { key: 'Plant', label: 'Type', render: renderType },
+            { key: 'Name', label: 'Name' },
             { key: 'Color', label: 'Color', render: renderColor },
-            { key: 'Seed Company', label: 'Company' },
+            { key: 'Seed Company', label: 'Company', render: renderCompany },
             { key: 'Sow Date', label: 'Sow Date', class: 'sow-date' },
             { key: 'Days to Sprout', label: 'Days to Sprout' },
             { key: 'Height', label: 'Height' },
@@ -26,9 +41,10 @@ const yearConfig = {
     '2025': {
         file: 'data/2025/seeds.csv',
         columns: [
-            { key: 'Plant', label: 'Plant' },
-            { key: 'Name', label: 'Variety' },
-            { key: 'Seed Company', label: 'Company' },
+            { key: 'Plant', label: 'Category', render: renderCategory },
+            { key: 'Plant', label: 'Type', render: renderType },
+            { key: 'Name', label: 'Name' },
+            { key: 'Seed Company', label: 'Company', render: renderCompany },
             { key: 'Location', label: 'Location' },
             { key: 'Days to maturity', label: 'Days to Maturity' },
             { key: 'Height', label: 'Height' },
@@ -81,7 +97,16 @@ function getColorDots(colorStr) {
 }
 
 function renderColor(value) {
-    return `${getColorDots(value)} ${value || '-'}`;
+    return getColorDots(value) || '-';
+}
+
+function renderCompany(value, row) {
+    if (!value || value === '-') return '-';
+    const url = row['URL'];
+    if (url) {
+        return `<a href="${url}" target="_blank" rel="noopener">${value}</a>`;
+    }
+    return value;
 }
 
 function renderTableHead() {
@@ -98,7 +123,7 @@ function renderTable() {
 
     const filtered = currentData.filter(row => {
         if (allocatedOnly && row['Allocated?'] !== 'TRUE') return false;
-        if (plantType && row['Plant'] !== plantType) return false;
+        if (plantType && getCategory(row['Plant']) !== plantType) return false;
         if (search) {
             const text = `${row['Plant']} ${row['Name']} ${row['Seed Company']}`.toLowerCase();
             if (!text.includes(search)) return false;
@@ -113,7 +138,7 @@ function renderTable() {
         const allocated = row['Allocated?'] === 'TRUE';
         const cells = config.columns.map(col => {
             const value = row[col.key] || '-';
-            const content = col.render ? col.render(row[col.key]) : value;
+            const content = col.render ? col.render(row[col.key], row) : value;
             const cls = col.class ? ` class="${col.class}"` : '';
             return `<td${cls}>${content}</td>`;
         }).join('');
@@ -121,12 +146,17 @@ function renderTable() {
     }).join('');
 }
 
+function getCategory(plant) {
+    if (!plant) return '';
+    return plant.split(',')[0].trim();
+}
+
 function populateFilters() {
-    const plantTypes = [...new Set(currentData.map(r => r['Plant']).filter(Boolean))].sort();
+    const categories = [...new Set(currentData.map(r => getCategory(r['Plant'])).filter(Boolean))].sort();
 
     const typeSelect = document.getElementById('plantType');
-    typeSelect.innerHTML = '<option value="">All Types</option>';
-    plantTypes.forEach(t => {
+    typeSelect.innerHTML = '<option value="">All Categories</option>';
+    categories.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = t;
