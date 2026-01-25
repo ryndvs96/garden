@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garden 2026</title>
+    <title>Garden Planner</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Garden 2026</h1>
+    <h1>Garden Planner</h1>
+
+    <div class="tabs">
+        <button class="tab active" data-year="2026">2026</button>
+        <button class="tab" data-year="2025">2025</button>
+    </div>
 
     <div class="filters">
         <label>
             Search:
             <input type="text" id="search" placeholder="Search plants...">
-        </label>
-        <label>
-            Sow Date:
-            <select id="sowDate">
-                <option value="">All Dates</option>
-            </select>
         </label>
         <label>
             Plant Type:
@@ -36,148 +35,12 @@
     <div class="stats" id="stats"></div>
 
     <table>
-        <thead>
-            <tr>
-                <th>Plant</th>
-                <th>Variety</th>
-                <th>Color</th>
-                <th>Company</th>
-                <th>Sow Date</th>
-                <th>Days to Sprout</th>
-                <th>Height</th>
-                <th>Start</th>
-            </tr>
+        <thead id="tableHead">
         </thead>
         <tbody id="tableBody">
         </tbody>
     </table>
 
-    <script>
-        const colorMap = {
-            'red': '#dc3545',
-            'yellow': '#ffc107',
-            'orange': '#fd7e14',
-            'pink': '#e83e8c',
-            'purple': '#6f42c1',
-            'blue': '#007bff',
-            'white': '#f8f9fa',
-            'green': '#28a745'
-        };
-
-        function parseCSV(text) {
-            const lines = text.trim().split('\n');
-            const headers = parseCSVLine(lines[0]);
-            return lines.slice(1).map(line => {
-                const values = parseCSVLine(line);
-                const obj = {};
-                headers.forEach((h, i) => obj[h.trim()] = values[i] || '');
-                return obj;
-            });
-        }
-
-        function parseCSVLine(line) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            result.push(current.trim());
-            return result;
-        }
-
-        function getColorDots(colorStr) {
-            if (!colorStr) return '';
-            const colors = colorStr.split(',').map(c => c.trim().toLowerCase());
-            return colors.map(c => {
-                const hex = colorMap[c] || '#999';
-                return `<span class="color-dot" style="background:${hex}" title="${c}"></span>`;
-            }).join('');
-        }
-
-        function renderTable(data) {
-            const search = document.getElementById('search').value.toLowerCase();
-            const sowDate = document.getElementById('sowDate').value;
-            const plantType = document.getElementById('plantType').value;
-            const allocatedOnly = document.getElementById('allocatedOnly').checked;
-
-            const filtered = data.filter(row => {
-                if (allocatedOnly && row['Allocated?'] !== 'TRUE') return false;
-                if (sowDate && row['Sow Date'] !== sowDate) return false;
-                if (plantType && row['Plant'] !== plantType) return false;
-                if (search) {
-                    const text = `${row['Plant']} ${row['Name']} ${row['Seed Company']} ${row['Color']}`.toLowerCase();
-                    if (!text.includes(search)) return false;
-                }
-                return true;
-            });
-
-            document.getElementById('stats').textContent = `Showing ${filtered.length} of ${data.length} plants`;
-
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = filtered.map(row => {
-                const allocated = row['Allocated?'] === 'TRUE';
-                return `
-                    <tr class="${allocated ? '' : 'not-allocated'}">
-                        <td>
-                            <span class="plant-type">${row['Plant']}</span>
-                        </td>
-                        <td><strong>${row['Name']}</strong></td>
-                        <td>${getColorDots(row['Color'])} ${row['Color'] || '-'}</td>
-                        <td>${row['Seed Company']}</td>
-                        <td class="sow-date">${row['Sow Date'] || '-'}</td>
-                        <td>${row['Days to Sprout'] || '-'}</td>
-                        <td>${row['Height'] || '-'}</td>
-                        <td>${row['Recommended'] || '-'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function populateFilters(data) {
-            const sowDates = [...new Set(data.map(r => r['Sow Date']).filter(Boolean))].sort();
-            const plantTypes = [...new Set(data.map(r => r['Plant']).filter(Boolean))].sort();
-
-            const sowSelect = document.getElementById('sowDate');
-            sowDates.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d;
-                opt.textContent = d;
-                sowSelect.appendChild(opt);
-            });
-
-            const typeSelect = document.getElementById('plantType');
-            plantTypes.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t;
-                opt.textContent = t;
-                typeSelect.appendChild(opt);
-            });
-        }
-
-        async function init() {
-            const response = await fetch('data/2026/seeds.csv');
-            const text = await response.text();
-            const data = parseCSV(text);
-
-            populateFilters(data);
-            renderTable(data);
-
-            document.getElementById('search').addEventListener('input', () => renderTable(data));
-            document.getElementById('sowDate').addEventListener('change', () => renderTable(data));
-            document.getElementById('plantType').addEventListener('change', () => renderTable(data));
-            document.getElementById('allocatedOnly').addEventListener('change', () => renderTable(data));
-        }
-
-        init();
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>

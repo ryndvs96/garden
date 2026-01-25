@@ -17,6 +17,33 @@ h1 {
     padding-bottom: 10px;
 }
 
+.tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+.tab {
+    padding: 10px 20px;
+    border: none;
+    background: #ddd;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: #666;
+    transition: background 0.2s, color 0.2s;
+}
+
+.tab:hover {
+    background: #ccc;
+}
+
+.tab.active {
+    background: #4a7c43;
+    color: white;
+}
+
 .filters {
     background: white;
     padding: 15px;
