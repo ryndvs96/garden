@@ -26,6 +26,9 @@ function renderType(value) {
 const yearConfig = {
     '2026': {
         file: 'data/2026/seeds.csv',
+        bedsFile: 'data/2026/beds.csv',
+        hasBeds: true,
+        bedsFormat: '2026',
         columns: [
             { key: 'Plant', label: 'Category', render: renderCategory },
             { key: 'Plant', label: 'Type', render: renderType },
@@ -40,6 +43,9 @@ const yearConfig = {
     },
     '2025': {
         file: 'data/2025/seeds.csv',
+        bedsFile: 'data/2025/beds.csv',
+        hasBeds: true,
+        bedsFormat: '2025',
         columns: [
             { key: 'Plant', label: 'Category', render: renderCategory },
             { key: 'Plant', label: 'Type', render: renderType },
@@ -153,23 +159,45 @@ function getCategory(plant) {
     return plant.split(',')[0].trim();
 }
 
-function parseBedsCsv(text) {
+function parseBedsCsv(text, format) {
     const lines = text.trim().split('\n');
-    // Row 0 has week numbers, row 1 has actual headers with dates
-    const headers = parseCSVLine(lines[1]);
-    const dateColumns = headers.slice(5).filter(h => h.match(/^\d+\/\d+$/));
+    let headers, dataStartRow, dateStartCol, plantTypeCol, nameCol, positionCol;
+
+    if (format === '2026') {
+        // 2026: Row 0 has week numbers, row 1 has actual headers
+        headers = parseCSVLine(lines[1]);
+        dataStartRow = 2;
+        positionCol = 0;
+        plantTypeCol = 3;
+        nameCol = 4;
+        dateStartCol = 5;
+    } else {
+        // 2025: Row 0 has headers directly
+        headers = parseCSVLine(lines[0]);
+        dataStartRow = 1;
+        positionCol = -1; // No position column
+        plantTypeCol = 2;
+        nameCol = 3;
+        dateStartCol = 4;
+    }
+
+    const dateColumns = headers.slice(dateStartCol).filter(h => h && h.match(/^\d+\/\d+$/));
 
     const areas = {};
     let currentArea = null;
 
-    for (let i = 2; i < lines.length; i++) {
+    for (let i = dataStartRow; i < lines.length; i++) {
         const values = parseCSVLine(lines[i]);
-        const position = values[0];
-        const plantType = values[3];
-        const name = values[4];
+        const position = positionCol >= 0 ? values[positionCol] : null;
+        const plantType = values[plantTypeCol];
+        const name = values[nameCol];
 
         // Check if this is an area header
-        if (!position && !values[1] && !values[2] && plantType && !name) {
+        const isAreaHeader = format === '2026'
+            ? (!position && !values[1] && !values[2] && plantType && !name)
+            : (!values[0] && !values[1] && plantType && !name);
+
+        if (isAreaHeader) {
             currentArea = plantType;
             if (!areas[currentArea]) {
                 areas[currentArea] = { Back: [], Middle: [], Front: [], plants: [] };
@@ -183,12 +211,29 @@ function parseBedsCsv(text) {
         // Skip empty rows
         if (!plantType || !name) continue;
 
-        // Find sow date
-        let sowDate = null;
-        for (let j = 5; j < values.length; j++) {
-            if (values[j] && values[j].match(/^\d+\/\d+$/)) {
-                sowDate = values[j];
-                break;
+        // Parse lifecycle events from date columns
+        const events = { sow: null, sprout: null, transplant: null, harvest: [], active: [] };
+
+        for (let j = dateStartCol; j < values.length; j++) {
+            const colIndex = j - dateStartCol;
+            if (colIndex >= dateColumns.length) break;
+
+            const cellValue = values[j];
+            const weekDate = dateColumns[colIndex];
+
+            if (!cellValue) continue;
+
+            if (cellValue.match(/^\d+\/\d+$/)) {
+                // It's a date - this is a sow date
+                if (!events.sow) events.sow = weekDate;
+            } else if (cellValue === 'Sp') {
+                events.sprout = weekDate;
+            } else if (cellValue === 'T') {
+                events.transplant = weekDate;
+            } else if (cellValue === 'H') {
+                events.harvest.push(weekDate);
+            } else if (cellValue === '--------') {
+                events.active.push(weekDate);
             }
         }
 
@@ -196,9 +241,13 @@ function parseBedsCsv(text) {
             position: position || 'General',
             plantType,
             name,
-            sowDate,
-            placed: values[1] === 'TRUE',
-            sown: values[2] === 'TRUE'
+            sowDate: events.sow,
+            sproutDate: events.sprout,
+            transplantDate: events.transplant,
+            harvestDates: events.harvest,
+            activeDates: events.active,
+            placed: format === '2026' ? values[1] === 'TRUE' : values[0] === 'TRUE',
+            sown: format === '2026' ? values[2] === 'TRUE' : values[1] === 'TRUE'
         };
 
         if (currentArea && areas[currentArea]) {
@@ -210,7 +259,7 @@ function parseBedsCsv(text) {
         }
     }
 
-    return { areas, dateColumns };
+    return { areas, dateColumns, format };
 }
 
 function getWeeks() {
@@ -220,9 +269,10 @@ function getWeeks() {
 
 let currentWeekIndex = 0;
 
-function getSowDateCounts() {
-    const counts = {};
-    if (!bedsData.areas) return counts;
+function getEventCounts() {
+    const sow = {};
+    const harvest = {};
+    if (!bedsData.areas) return { sow, harvest };
 
     Object.values(bedsData.areas).forEach(area => {
         const allPlants = [
@@ -233,14 +283,24 @@ function getSowDateCounts() {
         ];
         allPlants.forEach(p => {
             if (p.sowDate) {
-                counts[p.sowDate] = (counts[p.sowDate] || 0) + 1;
+                sow[p.sowDate] = (sow[p.sowDate] || 0) + 1;
+            }
+            if (p.harvestDates) {
+                p.harvestDates.forEach(h => {
+                    harvest[h] = (harvest[h] || 0) + 1;
+                });
             }
         });
     });
-    return counts;
+    return { sow, harvest };
 }
 
-function getPlantsForDate(date) {
+// Keep for backwards compatibility
+function getSowDateCounts() {
+    return getEventCounts().sow;
+}
+
+function getPlantsForDate(date, eventType = 'sow') {
     const plants = [];
     if (!bedsData.areas) return plants;
 
@@ -252,33 +312,43 @@ function getPlantsForDate(date) {
             ...(area.plants || [])
         ];
         allPlants.forEach(p => {
-            if (p.sowDate === date) {
-                // Avoid duplicates by name
-                if (!plants.find(existing => existing.name === p.name)) {
-                    plants.push(p);
-                }
+            let matches = false;
+            if (eventType === 'sow' && p.sowDate === date) {
+                matches = true;
+            } else if (eventType === 'harvest' && p.harvestDates && p.harvestDates.includes(date)) {
+                matches = true;
+            }
+            if (matches && !plants.find(existing => existing.name === p.name)) {
+                plants.push(p);
             }
         });
     });
     return plants;
 }
 
-function getNextSowDate(fromIndex) {
+function getNextEventDate(fromIndex, eventType = 'sow') {
     const weeks = getWeeks();
-    const sowCounts = getSowDateCounts();
+    const { sow: sowCounts, harvest: harvestCounts } = getEventCounts();
+    const counts = eventType === 'sow' ? sowCounts : harvestCounts;
 
     for (let i = fromIndex + 1; i < weeks.length; i++) {
-        if (sowCounts[weeks[i]] > 0) {
+        if (counts[weeks[i]] > 0) {
             return { date: weeks[i], index: i };
         }
     }
     return null;
 }
 
+// Keep for backwards compatibility
+function getNextSowDate(fromIndex) {
+    return getNextEventDate(fromIndex, 'sow');
+}
+
 function getPlantSowLocation(plantName) {
     const seed = currentData.find(s => s['Name'] === plantName);
     if (!seed) return 'other';
-    const rec = (seed['Recommended'] || '').toLowerCase();
+    // Check both 2026 and 2025 column names
+    const rec = (seed['Recommended'] || seed['Where to sow'] || '').toLowerCase();
     if (rec === 'inside') return 'indoor';
     if (rec === 'outside') return 'outdoor';
     return 'other';
@@ -292,99 +362,111 @@ function renderPlantChip(plant) {
     </div>`;
 }
 
+function renderSowSection(plants, showLocation = true) {
+    if (plants.length === 0) return '';
+
+    if (!showLocation) {
+        return `<div class="sow-info-section"><div class="sow-info-plants">${plants.map(renderPlantChip).join('')}</div></div>`;
+    }
+
+    const indoor = plants.filter(p => getPlantSowLocation(p.name) === 'indoor');
+    const outdoor = plants.filter(p => getPlantSowLocation(p.name) === 'outdoor');
+    const other = plants.filter(p => getPlantSowLocation(p.name) === 'other');
+
+    let sections = '';
+
+    if (indoor.length > 0) {
+        sections += `
+            <div class="sow-info-section">
+                <div class="sow-info-label">Indoor</div>
+                <div class="sow-info-plants">${indoor.map(renderPlantChip).join('')}</div>
+            </div>
+        `;
+    }
+
+    if (outdoor.length > 0) {
+        sections += `
+            <div class="sow-info-section">
+                <div class="sow-info-label">Outdoor</div>
+                <div class="sow-info-plants">${outdoor.map(renderPlantChip).join('')}</div>
+            </div>
+        `;
+    }
+
+    if (other.length > 0) {
+        sections += `
+            <div class="sow-info-section">
+                <div class="sow-info-label">Either</div>
+                <div class="sow-info-plants">${other.map(renderPlantChip).join('')}</div>
+            </div>
+        `;
+    }
+
+    return sections;
+}
+
 function renderSowInfo() {
     const sowInfo = document.getElementById('sowInfo');
     const weeks = getWeeks();
     const currentDate = weeks[currentWeekIndex];
-    const plantsThisWeek = getPlantsForDate(currentDate);
 
-    if (plantsThisWeek.length > 0) {
-        // Group by indoor/outdoor
-        const indoor = plantsThisWeek.filter(p => getPlantSowLocation(p.name) === 'indoor');
-        const outdoor = plantsThisWeek.filter(p => getPlantSowLocation(p.name) === 'outdoor');
-        const other = plantsThisWeek.filter(p => getPlantSowLocation(p.name) === 'other');
+    const sowPlants = getPlantsForDate(currentDate, 'sow');
+    const harvestPlants = getPlantsForDate(currentDate, 'harvest');
 
-        let sections = '';
+    let html = '';
 
-        if (indoor.length > 0) {
-            sections += `
-                <div class="sow-info-section">
-                    <div class="sow-info-label">Indoor</div>
-                    <div class="sow-info-plants">${indoor.map(renderPlantChip).join('')}</div>
-                </div>
-            `;
-        }
-
-        if (outdoor.length > 0) {
-            sections += `
-                <div class="sow-info-section">
-                    <div class="sow-info-label">Outdoor</div>
-                    <div class="sow-info-plants">${outdoor.map(renderPlantChip).join('')}</div>
-                </div>
-            `;
-        }
-
-        if (other.length > 0) {
-            sections += `
-                <div class="sow-info-section">
-                    <div class="sow-info-label">Either</div>
-                    <div class="sow-info-plants">${other.map(renderPlantChip).join('')}</div>
-                </div>
-            `;
-        }
-
-        sowInfo.className = 'sow-info';
-        sowInfo.innerHTML = `
-            <div class="sow-info-header">Sow this week <span class="date">(${currentDate})</span></div>
-            ${sections}
+    // Show sowing info
+    if (sowPlants.length > 0) {
+        html += `
+            <div class="sow-info">
+                <div class="sow-info-header">Sow this week <span class="date">(${currentDate})</span></div>
+                ${renderSowSection(sowPlants, true)}
+            </div>
         `;
-    } else {
-        const next = getNextSowDate(currentWeekIndex);
-        if (next) {
-            const nextPlants = getPlantsForDate(next.date);
-            const indoor = nextPlants.filter(p => getPlantSowLocation(p.name) === 'indoor');
-            const outdoor = nextPlants.filter(p => getPlantSowLocation(p.name) === 'outdoor');
-            const other = nextPlants.filter(p => getPlantSowLocation(p.name) === 'other');
+    }
 
-            let sections = '';
+    // Show harvest info
+    if (harvestPlants.length > 0) {
+        html += `
+            <div class="sow-info harvest">
+                <div class="sow-info-header">Harvest this week <span class="date">(${currentDate})</span></div>
+                ${renderSowSection(harvestPlants, false)}
+            </div>
+        `;
+    }
 
-            if (indoor.length > 0) {
-                sections += `
-                    <div class="sow-info-section">
-                        <div class="sow-info-label">Indoor</div>
-                        <div class="sow-info-plants">${indoor.map(renderPlantChip).join('')}</div>
+    // Show coming up next if nothing this week
+    if (sowPlants.length === 0 && harvestPlants.length === 0) {
+        const nextSow = getNextEventDate(currentWeekIndex, 'sow');
+        const nextHarvest = getNextEventDate(currentWeekIndex, 'harvest');
+
+        if (nextSow || nextHarvest) {
+            // Show whichever comes first, or both if same week
+            if (nextSow) {
+                const nextPlants = getPlantsForDate(nextSow.date, 'sow');
+                html += `
+                    <div class="sow-info upcoming">
+                        <div class="sow-info-header">Coming up: Sow <span class="date">(${nextSow.date})</span></div>
+                        ${renderSowSection(nextPlants, true)}
                     </div>
                 `;
             }
 
-            if (outdoor.length > 0) {
-                sections += `
-                    <div class="sow-info-section">
-                        <div class="sow-info-label">Outdoor</div>
-                        <div class="sow-info-plants">${outdoor.map(renderPlantChip).join('')}</div>
+            if (nextHarvest && (!nextSow || nextHarvest.index !== nextSow.index)) {
+                const nextPlants = getPlantsForDate(nextHarvest.date, 'harvest');
+                html += `
+                    <div class="sow-info harvest upcoming">
+                        <div class="sow-info-header">Coming up: Harvest <span class="date">(${nextHarvest.date})</span></div>
+                        ${renderSowSection(nextPlants, false)}
                     </div>
                 `;
             }
-
-            if (other.length > 0) {
-                sections += `
-                    <div class="sow-info-section">
-                        <div class="sow-info-label">Either</div>
-                        <div class="sow-info-plants">${other.map(renderPlantChip).join('')}</div>
-                    </div>
-                `;
-            }
-
-            sowInfo.className = 'sow-info upcoming';
-            sowInfo.innerHTML = `
-                <div class="sow-info-header">Coming up next <span class="date">(${next.date})</span></div>
-                ${sections}
-            `;
         } else {
-            sowInfo.className = 'sow-info';
-            sowInfo.innerHTML = `<div class="sow-info-header">No more sowing dates this season</div>`;
+            html = `<div class="sow-info"><div class="sow-info-header">No more events this season</div></div>`;
         }
     }
+
+    sowInfo.innerHTML = html;
 }
 
 function setWeekIndex(index) {
@@ -426,25 +508,37 @@ function findCurrentWeekIndex(weeks) {
 function renderWeekSelector() {
     const timeline = document.getElementById('timeline');
     const weeks = getWeeks();
-    const sowCounts = getSowDateCounts();
-    const maxCount = Math.max(...Object.values(sowCounts), 1);
+    const { sow: sowCounts, harvest: harvestCounts } = getEventCounts();
+    const maxSow = Math.max(...Object.values(sowCounts), 1);
+    const maxHarvest = Math.max(...Object.values(harvestCounts), 1);
 
     currentWeekIndex = findCurrentWeekIndex(weeks);
     document.getElementById('timelineCurrent').textContent = weeks[currentWeekIndex];
 
     timeline.innerHTML = weeks.map((week, i) => {
-        const count = sowCounts[week] || 0;
-        const hasSow = count > 0;
+        const sowCount = sowCounts[week] || 0;
+        const harvestCount = harvestCounts[week] || 0;
+        const hasSow = sowCount > 0;
+        const hasHarvest = harvestCount > 0;
 
         // Bar height based on count (min 4px, max 40px)
-        const barHeight = hasSow ? 8 + (count / maxCount) * 32 : 4;
+        const barHeight = hasSow || hasHarvest
+            ? 8 + (Math.max(sowCount / maxSow, harvestCount / maxHarvest)) * 32
+            : 4;
 
-        // Show label for sow dates or month starts
+        // Determine bar class
+        let barClass = 'has-event';
+        if (hasSow && hasHarvest) barClass = 'has-both';
+        else if (hasSow) barClass = 'has-sow';
+        else if (hasHarvest) barClass = 'has-harvest';
+        else barClass = '';
+
+        // Show label for event dates or month starts
         const [month, day] = week.split('/');
         const isMonthStart = parseInt(day) <= 7;
-        const showLabel = hasSow || isMonthStart;
+        const showLabel = hasSow || hasHarvest || isMonthStart;
 
-        return `<div class="timeline-week${hasSow ? ' has-sow' : ''}${i === currentWeekIndex ? ' active' : ''}" data-index="${i}">
+        return `<div class="timeline-week${barClass ? ' ' + barClass : ''}${i === currentWeekIndex ? ' active' : ''}" data-index="${i}">
             <div class="timeline-bar" style="height: ${barHeight}px"></div>
             ${showLabel ? `<span class="timeline-label">${week}</span>` : ''}
         </div>`;
@@ -545,7 +639,16 @@ function renderBeds() {
     const weeks = getWeeks();
     const weekIndex = currentWeekIndex;
 
-    const areaOrder = ['Right Raised Bed', 'Left Raised Bed', 'Front Yard', 'Fence Planters', 'Herb Planters', 'Front Steps'];
+    // Get area order based on what's actually in the data
+    const areaOrders = {
+        '2026': ['Right Raised Bed', 'Left Raised Bed', 'Front Yard', 'Fence Planters', 'Herb Planters', 'Front Steps'],
+        '2025': ['Right Raised Bed', 'Left Raised Bed', 'Grow Bags 15G', 'Grow Bags 5G', 'Fence Planters', 'Herb Planters', 'Front Steps']
+    };
+    const fullWidthAreas = ['Right Raised Bed', 'Left Raised Bed', 'Grow Bags 15G'];
+
+    // Use available areas from data, falling back to known order
+    const knownOrder = areaOrders[bedsData.format] || areaOrders['2026'];
+    const areaOrder = knownOrder.filter(name => bedsData.areas[name]);
 
     layout.innerHTML = areaOrder.map(areaName => {
         const area = bedsData.areas[areaName];
@@ -604,7 +707,7 @@ function renderBeds() {
             </div>`;
         }
 
-        const isFullWidth = areaName === 'Right Raised Bed' || areaName === 'Left Raised Bed';
+        const isFullWidth = fullWidthAreas.includes(areaName);
         return `<div class="bed-area${isFullWidth ? ' full-width' : ''}">
             <h3>${areaName}</h3>
             ${content}
@@ -653,17 +756,17 @@ async function loadYear(year) {
 
     // Show/hide sub-tabs based on year
     const subTabs = document.getElementById('subTabs');
-    if (year === '2026') {
+    if (config.hasBeds) {
         subTabs.classList.remove('hidden');
 
-        // Load beds data for 2026
-        const bedsResponse = await fetch('data/2026/beds.csv');
+        // Load beds data
+        const bedsResponse = await fetch(config.bedsFile);
         const bedsText = await bedsResponse.text();
-        bedsData = parseBedsCsv(bedsText);
+        bedsData = parseBedsCsv(bedsText, config.bedsFormat);
         renderWeekSelector();
     } else {
         subTabs.classList.add('hidden');
-        // Switch to seeds view for other years
+        // Switch to seeds view
         currentView = 'seeds';
         document.getElementById('seedsView').classList.remove('hidden');
         document.getElementById('bedsView').classList.add('hidden');
@@ -673,7 +776,7 @@ async function loadYear(year) {
     populateFilters();
     renderTable();
 
-    if (year === '2026' && currentView === 'beds') {
+    if (config.hasBeds && currentView === 'beds') {
         renderBeds();
     }
 }
