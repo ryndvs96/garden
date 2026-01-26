@@ -44,6 +44,269 @@ h1 {
     color: white;
 }
 
+.sub-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.sub-tab {
+    padding: 6px 14px;
+    border: 1px solid #4a7c43;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #4a7c43;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sub-tab:hover {
+    background: #e8f5e6;
+}
+
+.sub-tab.active {
+    background: #4a7c43;
+    color: white;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.bed-controls {
+    background: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.timeline-container {
+    width: 100%;
+}
+
+.timeline-header {
+    display: flex;
+    align-items: baseline;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.timeline-current {
+    font-weight: 700;
+    font-size: 24px;
+    color: #2d5a27;
+}
+
+.timeline-hint {
+    font-size: 12px;
+    color: #999;
+}
+
+.timeline {
+    display: flex;
+    align-items: flex-end;
+    height: 60px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 8px 4px;
+    padding-bottom: 28px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.timeline-week {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    position: relative;
+}
+
+.timeline-bar {
+    width: 4px;
+    background: #ddd;
+    border-radius: 2px;
+    min-height: 4px;
+    transition: all 0.15s;
+}
+
+.timeline-week.has-sow .timeline-bar {
+    background: #4a7c43;
+    width: 8px;
+}
+
+.timeline-week.active .timeline-bar {
+    background: #2d5a27;
+    box-shadow: 0 0 0 3px rgba(74, 124, 67, 0.3);
+}
+
+.timeline-week.active.has-sow .timeline-bar {
+    box-shadow: 0 0 0 3px rgba(74, 124, 67, 0.5);
+}
+
+.timeline-label {
+    position: absolute;
+    bottom: -20px;
+    font-size: 9px;
+    color: #999;
+    white-space: nowrap;
+}
+
+.timeline-week.has-sow .timeline-label {
+    color: #4a7c43;
+    font-weight: 600;
+}
+
+.timeline-week.active .timeline-label {
+    color: #2d5a27;
+    font-weight: 700;
+}
+
+.sow-info {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #f0f7ef;
+    border-radius: 8px;
+    border-left: 4px solid #4a7c43;
+}
+
+.sow-info-header {
+    font-weight: 600;
+    color: #2d5a27;
+    margin-bottom: 8px;
+}
+
+.sow-info-header .date {
+    font-weight: 700;
+}
+
+.sow-info-plants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sow-info-section {
+    margin-bottom: 10px;
+}
+
+.sow-info-section:last-child {
+    margin-bottom: 0;
+}
+
+.sow-info-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.sow-info-plant {
+    background: #e8f5e6;
+    border: 1px solid #c5e1c0;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+}
+
+.sow-info-plant .plant-type {
+    color: #666;
+    font-size: 11px;
+    display: block;
+}
+
+.sow-info.upcoming {
+    background: #fff9e6;
+    border-left-color: #ffc107;
+}
+
+.sow-info.upcoming .sow-info-header {
+    color: #856404;
+}
+
+.sow-info.upcoming .sow-info-plant {
+    border-color: #ffeaa7;
+}
+
+.garden-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.bed-area {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.bed-area.full-width {
+    grid-column: 1 / -1;
+}
+
+.bed-area.full-width .bed-plants {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.bed-area.full-width .bed-plant {
+    margin: 0;
+}
+
+.bed-area h3 {
+    background: #4a7c43;
+    color: white;
+    margin: 0;
+    padding: 12px 15px;
+    font-size: 16px;
+}
+
+.bed-section {
+    border-bottom: 1px solid #eee;
+}
+
+.bed-section:last-child {
+    border-bottom: none;
+}
+
+.bed-section-title {
+    background: #f0f7ef;
+    padding: 8px 15px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #2d5a27;
+}
+
+.bed-plants {
+    padding: 10px 15px;
+    min-height: 40px;
+}
+
+.bed-plant {
+    display: inline-block;
+    background: #e8f5e6;
+    border: 1px solid #c5e1c0;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 3px 3px 3px 0;
+    font-size: 12px;
+}
+
+.bed-plant .plant-type {
+    font-size: 10px;
+    color: #666;
+    display: block;
+}
+
 .filters {
     background: white;
     padding: 15px;
