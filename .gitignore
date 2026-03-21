@@ -6,8 +6,9 @@ alpha/
 # Vim swap files
 *.swp
 
-# Maven
+# Maven build output
 garden-planner/target/
+*.class
 
 # MCP config (local dev only)
 .mcp.json
