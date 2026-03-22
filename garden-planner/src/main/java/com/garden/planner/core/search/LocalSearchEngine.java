@@ -1,7 +1,6 @@
 package com.garden.planner.core.search;
 
 import com.garden.planner.core.geometry.HexGrid;
-import com.garden.planner.core.geometry.ZoneConfig;
 import com.garden.planner.core.model.*;
 
 import java.util.*;
@@ -257,37 +256,22 @@ public class LocalSearchEngine implements SearchEngine {
     }
 
     public static PlacedPlant makePlacedPlant(PlantInstance plant, int row, int col, int gridRows, int gridCols) {
-        ZoneConfig cfg = HexGrid.ZONES.getOrDefault(plant.zone(), HexGrid.ZONES.get("Middle"));
-        int allowedLo = cfg.allowedLo();
-        int allowedHi = Math.min(cfg.allowedHi(), gridRows - 1);
-        Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), plant.isStrict(),
-                allowedLo, allowedHi, gridRows, gridCols);
+        Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), plant.isStrict(), gridRows, gridCols);
         if (cells == null) return null;
         return new PlacedPlant(plant, row, col, cells, false);
     }
 
     public static PositionLists enumerateValidPositions(PlantInstance plant, int gridRows, int gridCols) {
-        ZoneConfig cfg = HexGrid.ZONES.getOrDefault(plant.zone(), HexGrid.ZONES.get("Middle"));
-        int allowedLo = cfg.allowedLo();
-        int allowedHi = Math.min(cfg.allowedHi(), gridRows - 1);
-        int preferredLo = cfg.preferredLo();
-        int preferredHi = Math.min(cfg.preferredHi(), gridRows - 1);
-
         List<int[]> preferred = new ArrayList<>();
         List<int[]> nonPreferred = new ArrayList<>();
 
-        for (int row = allowedLo; row <= allowedHi; row++) {
+        for (int row = 0; row < gridRows; row++) {
             for (int col = 0; col < gridCols; col++) {
                 if (plant.isStrict()) {
-                    Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), true,
-                            allowedLo, allowedHi, gridRows, gridCols);
+                    Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), true, gridRows, gridCols);
                     if (cells == null) continue;
                 }
-                if (row >= preferredLo && row <= preferredHi) {
-                    preferred.add(new int[]{row, col});
-                } else {
-                    nonPreferred.add(new int[]{row, col});
-                }
+                nonPreferred.add(new int[]{row, col});
             }
         }
 
@@ -347,6 +331,7 @@ public class LocalSearchEngine implements SearchEngine {
             delta += PlacementState.W_N_UNIQUE;
         }
         int[][] strictGrid = state.getStrictGrid();
+        int[][] looseGrid  = state.getLooseGrid();
         if (plant.isStrict()) {
             if (state.getPenaltyMode() == PenaltyMode.PAIR) {
                 Set<Integer> touching = new HashSet<>();
@@ -368,8 +353,8 @@ public class LocalSearchEngine implements SearchEngine {
             }
         } else {
             for (GridCell cell : pp.cells()) {
-                if (strictGrid[cell.r()][cell.c()] > 0) {
-                    delta += PlacementState.W_LOOSE_STRICT_CELLS;
+                if (strictGrid[cell.r()][cell.c()] == 0 && looseGrid[cell.r()][cell.c()] == 0) {
+                    delta += PlacementState.W_LOOSE_OPEN_CELLS;
                 }
             }
         }
@@ -418,7 +403,7 @@ public class LocalSearchEngine implements SearchEngine {
     }
 
     private String posKey(PlantInstance p) {
-        return p.zone() + "|" + p.widthIn() + "|" + p.isStrict();
+        return p.widthIn() + "|" + p.isStrict();
     }
 
     private record InsertResult(PlacedPlant pp, double delta) {}

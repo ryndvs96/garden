@@ -15,7 +15,7 @@ public class PlacementState {
     public static final double W_N_UNIQUE            =  1.0;
     public static final double W_STRICT_STRICT_CELLS = -2.0;
     public static final double W_STRICT_STRICT_PAIR  = -3.0;
-    public static final double W_LOOSE_STRICT_CELLS  =  0.5;
+    public static final double W_LOOSE_OPEN_CELLS    =  0.5;  // bonus per loose-plant cell that lands on empty ground
     public static final double W_LOOSE_LOOSE_CELLS   = -2.0;
 
     private final List<PlacedPlant> placed;
@@ -98,12 +98,14 @@ public class PlacementState {
             }
         }
 
-        // Loose-over-strict bonus
+        // Bonus per loose-plant cell that lands on completely empty ground
         for (PlacedPlant pp : placed) {
             if (!pp.plant().isStrict()) {
                 for (GridCell cell : pp.cells()) {
-                    if (strictGrid[cell.r()][cell.c()] > 0) {
-                        s += W_LOOSE_STRICT_CELLS;
+                    if (strictGrid[cell.r()][cell.c()] == 0 && looseGrid[cell.r()][cell.c()] == 1) {
+                        // looseGrid already includes this plant (state is fully built), so
+                        // count == 1 means only this plant is here and no strict plant covers it.
+                        s += W_LOOSE_OPEN_CELLS;
                     }
                 }
             }
@@ -144,8 +146,9 @@ public class PlacementState {
             }
         } else {
             for (GridCell cell : pp.cells()) {
-                if (strictGrid[cell.r()][cell.c()] > 0) {
-                    delta += W_LOOSE_STRICT_CELLS;
+                if (strictGrid[cell.r()][cell.c()] == 0 && looseGrid[cell.r()][cell.c()] == 0) {
+                    // Cell is completely empty — reward open-space placement
+                    delta += W_LOOSE_OPEN_CELLS;
                 }
                 // Penalty for each existing loose plant cell we'd overlap
                 delta += W_LOOSE_LOOSE_CELLS * looseGrid[cell.r()][cell.c()];
@@ -228,8 +231,8 @@ public class PlacementState {
             }
         } else {
             for (GridCell cell : pp.cells()) {
-                if (strictGrid[cell.r()][cell.c()] > 0) {
-                    delta -= W_LOOSE_STRICT_CELLS;
+                if (strictGrid[cell.r()][cell.c()] == 0 && looseGrid[cell.r()][cell.c()] == 0) {
+                    delta -= W_LOOSE_OPEN_CELLS;
                 }
                 delta -= W_LOOSE_LOOSE_CELLS * looseGrid[cell.r()][cell.c()];
             }
@@ -322,6 +325,7 @@ public class PlacementState {
     public List<PlacedPlant> getPlaced() { return placed; }
     public List<PlantInstance> getUnplaced() { return unplaced; }
     public int[][] getStrictGrid() { return strictGrid; }
+    public int[][] getLooseGrid()  { return looseGrid; }
     public Map<PlantSpecies, Integer> getSpeciesCount() { return speciesCount; }
     public double getScore() { return score; }
     public PenaltyMode getPenaltyMode() { return penaltyMode; }

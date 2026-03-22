@@ -1,7 +1,6 @@
 package com.garden.planner.core.search;
 
 import com.garden.planner.core.geometry.HexGrid;
-import com.garden.planner.core.geometry.ZoneConfig;
 import com.garden.planner.core.model.*;
 
 import java.util.*;
@@ -135,18 +134,12 @@ public class GreedyLnsEngine implements SearchEngine {
         }
 
         for (PlantInstance plant : plants) {
-            ZoneConfig cfg = HexGrid.ZONES.getOrDefault(plant.zone(), HexGrid.ZONES.get("Middle"));
-            int allowedLo = cfg.allowedLo();
-            int allowedHi = Math.min(cfg.allowedHi(), gridRows - 1);
-            List<Integer> scanRows = HexGrid.zoneScanRows(plant.zone(), gridRows);
-
             boolean placedFlag = false;
             outer:
-            for (int row : scanRows) {
+            for (int row = 0; row < gridRows; row++) {
                 for (int col : colOrder) {
                     if (plant.isStrict()) {
-                        Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), true,
-                                allowedLo, allowedHi, gridRows, gridCols);
+                        Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), true, gridRows, gridCols);
                         if (cells == null) continue;
                         boolean anyOccupied = false;
                         for (GridCell cell : cells) {
@@ -158,11 +151,8 @@ public class GreedyLnsEngine implements SearchEngine {
                         placedFlag = true;
                         break outer;
                     } else {
-                        // Loose plant: centre in bounds
                         if (row < 0 || row >= gridRows || col < 0 || col >= gridCols) continue;
-                        if (row < allowedLo || row > allowedHi) continue;
-                        Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), false,
-                                allowedLo, allowedHi, gridRows, gridCols);
+                        Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), false, gridRows, gridCols);
                         if (cells == null || cells.isEmpty()) continue;
                         boolean anyLooseOccupied = false;
                         for (GridCell cell : cells) {

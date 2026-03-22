@@ -64,11 +64,4 @@ class HexGridTest {
         assertThat(HexGrid.GRID_COLS).isEqualTo(84);
     }
 
-    @Test
-    void zones_exist() {
-        assertThat(HexGrid.ZONES).containsKeys("Back", "Middle", "Front");
-        assertThat(HexGrid.ZONES.get("Back").preferredLo()).isEqualTo(0);
-        assertThat(HexGrid.ZONES.get("Back").preferredHi()).isEqualTo(8);
-        assertThat(HexGrid.ZONES.get("Front").preferredLo()).isEqualTo(19);
-    }
 }

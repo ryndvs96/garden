@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.garden.planner.core.geometry.HexGrid;
-import com.garden.planner.core.geometry.ZoneConfig;
 import com.garden.planner.core.model.*;
 
 import java.io.*;
@@ -69,11 +68,8 @@ public class StateSerializer {
             PlantInstance plant = plantInstanceFromJson(ppNode.get("plant"));
             // Recompute cells from (row, col) using the current algorithm so old saves
             // are upgraded to the correct hex-disk footprint on load.
-            ZoneConfig cfg = HexGrid.ZONES.getOrDefault(plant.zone(), HexGrid.ZONES.get("Middle"));
-            int allowedLo = cfg.allowedLo();
-            int allowedHi = Math.min(cfg.allowedHi(), gridRows - 1);
             Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), plant.isStrict(),
-                    allowedLo, allowedHi, gridRows, gridCols);
+                    gridRows, gridCols);
             if (cells == null) {
                 // Fallback: read saved cells (e.g. plant moved out of strict zone bounds)
                 cells = new LinkedHashSet<>();

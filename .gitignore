@@ -1,4 +1,8 @@
+# Old project
 alpha/
+
+# Personal saved garden beds
+garden-planner/saves/*
 
 # macOS
 .DS_Store

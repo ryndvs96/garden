@@ -62,4 +62,58 @@ class ScorerTest {
         // penalty = -2.0 * 1 (each cell had 1 existing strict) * 2 cells = -4.0
         assertThat(delta2).isLessThan(0.0); // should be penalized
     }
+
+    /**
+     * A loose fill flower placed in completely open space should score higher than the same
+     * flower wedged between two strict bok choy plants.
+     *
+     * Scoring uses W_LOOSE_OPEN_CELLS: +0.5 per loose-plant cell that lands on empty ground.
+     *   Overlap case  (1 of 3 cells free): W_N_PLACED(1) + W_N_UNIQUE(1) + 0.5×1 = 2.5
+     *   Open space    (3 of 3 cells free): W_N_PLACED(1) + W_N_UNIQUE(1) + 0.5×3 = 3.5
+     * Placing anywhere still yields a net positive, but open space is always preferred.
+     */
+    @Test
+    void looseFlower_openSpace_scoresHigherThanOverlappingStrictPlants() {
+        // Two strict bok choy plants, side by side, NOT overlapping each other.
+        PlantInstance bokChoy1 = new PlantInstance("Back", "Veg", "Bok Choy", 6, 18, true,  1, "BC");
+        PlantInstance bokChoy2 = new PlantInstance("Back", "Veg", "Bok Choy", 6, 18, true,  2, "BC");
+        PlantInstance flower   = new PlantInstance("Back", "Flower", "Marigold", 6, 12, false, 1, "MG");
+
+        // Bok choy 1: centre (4,10), footprint covers cols 9-11
+        Set<GridCell> bc1Cells = Set.of(new GridCell(4, 9), new GridCell(4, 10), new GridCell(4, 11));
+        PlacedPlant ppBc1 = new PlacedPlant(bokChoy1, 4, 10, bc1Cells, false);
+
+        // Bok choy 2: centre (4,14), footprint covers cols 13-15 — no overlap with bc1
+        Set<GridCell> bc2Cells = Set.of(new GridCell(4, 13), new GridCell(4, 14), new GridCell(4, 15));
+        PlacedPlant ppBc2 = new PlacedPlant(bokChoy2, 4, 14, bc2Cells, false);
+
+        // Build two identical base states (both bok choy placed, flower unplaced).
+        PlacementState stateOverlap   = new PlacementState(List.of(ppBc1, ppBc2), List.of(flower),
+                HexGrid.GRID_ROWS, HexGrid.GRID_COLS, PenaltyMode.CELL);
+        PlacementState stateOpenSpace = new PlacementState(List.of(ppBc1, ppBc2), List.of(flower),
+                HexGrid.GRID_ROWS, HexGrid.GRID_COLS, PenaltyMode.CELL);
+
+        // Flower wedged between the two bok choy: overlaps cell (4,11) from bc1 and
+        // (4,13) from bc2 — only the middle cell (4,12) is empty.
+        Set<GridCell> flowerOverlapCells = Set.of(new GridCell(4, 11), new GridCell(4, 12), new GridCell(4, 13));
+        PlacedPlant ppFlowerOverlap = new PlacedPlant(flower, 4, 12, flowerOverlapCells, false);
+
+        // Flower in open space far from both bok choy — all 3 cells are empty.
+        Set<GridCell> flowerOpenCells = Set.of(new GridCell(4, 40), new GridCell(4, 41), new GridCell(4, 42));
+        PlacedPlant ppFlowerOpen = new PlacedPlant(flower, 4, 41, flowerOpenCells, false);
+
+        double deltaOverlap   = stateOverlap.addDelta(ppFlowerOverlap);
+        double deltaOpenSpace = stateOpenSpace.addDelta(ppFlowerOpen);
+
+        // Both placements are net positive (placing anywhere beats not placing).
+        assertThat(deltaOverlap).isGreaterThan(0.0);
+        assertThat(deltaOpenSpace).isGreaterThan(0.0);
+
+        // Open space earns the bonus on all 3 cells; overlap earns it on only 1.
+        assertThat(deltaOpenSpace).isGreaterThan(deltaOverlap);
+
+        // Spot-check exact values: overlap=2.5, open=3.5
+        assertThat(deltaOverlap).isCloseTo(2.5, within(0.001));
+        assertThat(deltaOpenSpace).isCloseTo(3.5, within(0.001));
+    }
 }
