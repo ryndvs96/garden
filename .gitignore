@@ -16,3 +16,6 @@ garden-planner/target/
 
 # MCP config (local dev only)
 .mcp.json
+
+# Claude Code local config
+.claude/
