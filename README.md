@@ -57,7 +57,7 @@ saves/               # JSON placement saves (written at runtime)
 
 ## Feature Requests
 
-Planned features and ideas are tracked in [FEATURE_REQUESTS.md](FEATURE_REQUESTS.md).
+Planned features and ideas are tracked in [GitHub Issues](https://github.com/ryndvs96/garden/issues).
 
 ## Running Tests
 
