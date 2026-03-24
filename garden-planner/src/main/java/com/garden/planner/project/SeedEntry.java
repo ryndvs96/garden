@@ -8,4 +8,5 @@ public record SeedEntry(
         int widthIn,
         int heightIn,
         boolean isStrict,
-        String notes) {}
+        String notes,
+        int quantity) {}

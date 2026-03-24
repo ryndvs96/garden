@@ -24,19 +24,19 @@ class CanonicalBedTest {
         List<PlantInstance> instances = new ArrayList<>();
         // 2x TallA (strict)
         for (int i = 1; i <= 2; i++) {
-            instances.add(new PlantInstance("Back", "Test", "Tall A", 6, 30, true, i, "A"));
+            instances.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Tall A").widthIn(6).heightIn(30).isStrict(true).instanceIdx(i).code("A").build());
         }
         // 2x TallB (strict)
         for (int i = 1; i <= 2; i++) {
-            instances.add(new PlantInstance("Back", "Test", "Tall B", 6, 30, true, i, "B"));
+            instances.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Tall B").widthIn(6).heightIn(30).isStrict(true).instanceIdx(i).code("B").build());
         }
         // 4x ShortC (loose)
         for (int i = 1; i <= 4; i++) {
-            instances.add(new PlantInstance("Back", "Test", "Short C", 3, 10, false, i, "C"));
+            instances.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Short C").widthIn(3).heightIn(10).isStrict(false).instanceIdx(i).code("C").build());
         }
         // 6x ShortD (loose)
         for (int i = 1; i <= 6; i++) {
-            instances.add(new PlantInstance("Back", "Test", "Short D", 2, 6, false, i, "D"));
+            instances.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Short D").widthIn(2).heightIn(6).isStrict(false).instanceIdx(i).code("D").build());
         }
         return instances;
     }
@@ -44,8 +44,10 @@ class CanonicalBedTest {
     @Test
     void localSearchEngine_canonicalBed_placesAtLeast12() {
         List<PlantInstance> plants = buildInstances();
-        SearchConfig config = new SearchConfig(10, 200, PenaltyMode.CELL, 30000L, 42L, 80,
-                TEST_ROWS, TEST_COLS);
+        SearchConfig config = SearchConfig.defaults()
+                .nStarts(10).nIters(200).nPositions(80)
+                .gridRows(TEST_ROWS).gridCols(TEST_COLS)
+                .build();
         SearchMetrics metrics = new SearchMetrics();
         AtomicBoolean cancelled = new AtomicBoolean(false);
 
@@ -61,8 +63,10 @@ class CanonicalBedTest {
     @Test
     void greedyLnsEngine_canonicalBed_placesAtLeast12() {
         List<PlantInstance> plants = buildInstances();
-        SearchConfig config = new SearchConfig(30, 20, PenaltyMode.CELL, 30000L, 42L, 80,
-                TEST_ROWS, TEST_COLS);
+        SearchConfig config = SearchConfig.defaults()
+                .nStarts(30).nIters(20).nPositions(80)
+                .gridRows(TEST_ROWS).gridCols(TEST_COLS)
+                .build();
         SearchMetrics metrics = new SearchMetrics();
         AtomicBoolean cancelled = new AtomicBoolean(false);
 

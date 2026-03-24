@@ -14,7 +14,7 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
         MainController root = new MainController(stage);
-        Scene scene = new Scene(root, 1280, 720);
+        Scene scene = new Scene(root, 1600, 900);
         stage.setScene(scene);
         stage.show();
     }

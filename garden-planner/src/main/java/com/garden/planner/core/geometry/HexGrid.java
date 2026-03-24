@@ -81,4 +81,29 @@ public class HexGrid {
         return cells;
     }
 
+    /**
+     * Count cells in a loose plant's footprint that fall just outside the grid,
+     * within {@code maxOverflow} rows/cols of any edge.
+     * These represent canopy overhang beyond the bed border — scored like open space.
+     */
+    public static int countOverflowCells(int row, int col, int width, int gridRows, int gridCols, int maxOverflow) {
+        int r = width / 2;
+        int cx = col - (row - (row & 1)) / 2;
+        int cz = row;
+        int count = 0;
+        for (int dx = -r; dx <= r; dx++) {
+            int dzMin = Math.max(-r, -dx - r);
+            int dzMax = Math.min( r,  r - dx);
+            for (int dz = dzMin; dz <= dzMax; dz++) {
+                int nr = cz + dz;
+                int nc = (cx + dx) + (nr - (nr & 1)) / 2;
+                boolean inGrid     = nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols;
+                boolean inOverflow = nr >= -maxOverflow && nr < gridRows + maxOverflow
+                                  && nc >= -maxOverflow && nc < gridCols + maxOverflow;
+                if (!inGrid && inOverflow) count++;
+            }
+        }
+        return count;
+    }
+
 }

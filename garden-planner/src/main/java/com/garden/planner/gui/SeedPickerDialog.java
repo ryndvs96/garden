@@ -205,7 +205,7 @@ public class SeedPickerDialog {
             return new SeedEntry(UUID.randomUUID().toString(),
                     "Any", type, name,
                     widthSpin.getValue(), widthSpin.getValue(),
-                    strictCheck.isSelected(), notesField.getText().trim());
+                    strictCheck.isSelected(), notesField.getText().trim(), 25);
         });
 
         newDlg.showAndWait().ifPresent(entry -> {

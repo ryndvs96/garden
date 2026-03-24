@@ -265,7 +265,7 @@ public class GreedyLnsEngine implements SearchEngine {
                 Set<GridCell> cellsForInst = (i == 0) ? allCells : Set.of(new GridCell(0, 0));
                 int row = cellsForInst.isEmpty() ? 0 : cellsForInst.iterator().next().r();
                 int col = cellsForInst.isEmpty() ? 0 : cellsForInst.iterator().next().c();
-                placedPlants.add(new PlacedPlant(inst, row, col, cellsForInst, false));
+                placedPlants.add(PlacedPlant.builder().plant(inst).row(row).col(col).cells(cellsForInst).locked(false).build());
             }
         }
 

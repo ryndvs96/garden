@@ -1,5 +1,6 @@
 package com.garden.planner.core.model;
 
+import com.garden.planner.core.geometry.HexGrid;
 import java.util.*;
 
 /**
@@ -10,13 +11,24 @@ import java.util.*;
  */
 public class PlacementState {
 
-    // Score weights (from Python SCORE_WEIGHTS)
-    public static final double W_N_PLACED            =  1.0;
-    public static final double W_N_UNIQUE            =  1.0;
-    public static final double W_STRICT_STRICT_CELLS = -2.0;
-    public static final double W_STRICT_STRICT_PAIR  = -3.0;
-    public static final double W_LOOSE_OPEN_CELLS    =  0.5;  // bonus per loose-plant cell that lands on empty ground
-    public static final double W_LOOSE_LOOSE_CELLS   = -2.0;
+    // Score weights
+    public static final double W_N_PLACED           =  1.0;
+    public static final double W_N_UNIQUE           =  1.0;
+    public static final double W_STRICT_STRICT_PAIR = -3.0;  // PAIR mode only
+
+    /**
+     * Per-cell score contribution given s strict plants and l loose plants on the cell.
+     *   s=1       → +3  (good coverage)
+     *   s≥2       → -s  (overlap penalty, linear)
+     *   s=0, l=1  → +2  (sole loose on open ground)
+     *   otherwise →  0  (empty, 2+ loose stacked, or loose under strict)
+     */
+    static double cellScore(int s, int l) {
+        if (s == 1) return 3.0;
+        if (s >= 2) return -s;
+        if (l == 1) return 2.0;
+        return 0.0;
+    }
 
     private final List<PlacedPlant> placed;
     private final List<PlantInstance> unplaced;
@@ -87,37 +99,18 @@ public class PlacementState {
                 }
             }
         } else {
-            // -2 per cell where >= 2 strict plants overlap
+            // Cell-level scoring: cs(strict_count, loose_count) per cell
             for (int r = 0; r < gridRows; r++) {
                 for (int c = 0; c < gridCols; c++) {
-                    int n = strictGrid[r][c];
-                    if (n >= 2) {
-                        s += W_STRICT_STRICT_CELLS * (n - 1);
-                    }
+                    s += cellScore(strictGrid[r][c], looseGrid[r][c]);
                 }
             }
         }
 
-        // Bonus per loose-plant cell that lands on completely empty ground
+        // Border overhang bonus: loose plant cells within 2 rows of the bed edge score like open space
         for (PlacedPlant pp : placed) {
             if (!pp.plant().isStrict()) {
-                for (GridCell cell : pp.cells()) {
-                    if (strictGrid[cell.r()][cell.c()] == 0 && looseGrid[cell.r()][cell.c()] == 1) {
-                        // looseGrid already includes this plant (state is fully built), so
-                        // count == 1 means only this plant is here and no strict plant covers it.
-                        s += W_LOOSE_OPEN_CELLS;
-                    }
-                }
-            }
-        }
-
-        // Loose-over-loose penalty: -2 per cell where >= 2 loose plants overlap
-        for (int r = 0; r < gridRows; r++) {
-            for (int c = 0; c < gridCols; c++) {
-                int n = looseGrid[r][c];
-                if (n >= 2) {
-                    s += W_LOOSE_LOOSE_CELLS * (n - 1);
-                }
+                s += HexGrid.countOverflowCells(pp.row(), pp.col(), pp.plant().widthIn(), gridRows, gridCols, 2) * 2.0;
             }
         }
 
@@ -141,18 +134,27 @@ public class PlacementState {
                 delta += W_STRICT_STRICT_PAIR * nOverlap;
             } else {
                 for (GridCell cell : pp.cells()) {
-                    delta += W_STRICT_STRICT_CELLS * strictGrid[cell.r()][cell.c()];
+                    int k = strictGrid[cell.r()][cell.c()];
+                    int l = looseGrid[cell.r()][cell.c()];
+                    // delta = cellScore(k+1, l) - cellScore(k, l)
+                    if (k == 0)      delta += 3.0 - (l == 1 ? 2.0 : 0.0);
+                    else if (k == 1) delta += -5.0;  // cs(2,l) - cs(1,l) = -2 - 3
+                    else             delta += -1.0;  // cs(k+1,l) - cs(k,l) = -1
                 }
             }
         } else {
             for (GridCell cell : pp.cells()) {
-                if (strictGrid[cell.r()][cell.c()] == 0 && looseGrid[cell.r()][cell.c()] == 0) {
-                    // Cell is completely empty — reward open-space placement
-                    delta += W_LOOSE_OPEN_CELLS;
+                int s = strictGrid[cell.r()][cell.c()];
+                int k = looseGrid[cell.r()][cell.c()];
+                // delta = cellScore(s, k+1) - cellScore(s, k)
+                if (s == 0) {
+                    if (k == 0)      delta += 2.0;
+                    else if (k == 1) delta += -2.0;
+                    // k >= 2: delta += 0
                 }
-                // Penalty for each existing loose plant cell we'd overlap
-                delta += W_LOOSE_LOOSE_CELLS * looseGrid[cell.r()][cell.c()];
+                // s >= 1: delta += 0 (neutral under any strict)
             }
+            delta += HexGrid.countOverflowCells(pp.row(), pp.col(), plant.widthIn(), gridRows, gridCols, 2) * 2.0;
         }
         return delta;
     }
@@ -226,16 +228,27 @@ public class PlacementState {
                 delta -= W_STRICT_STRICT_PAIR * nPairs;
             } else {
                 for (GridCell cell : pp.cells()) {
-                    delta -= W_STRICT_STRICT_CELLS * strictGrid[cell.r()][cell.c()];
+                    // Grid is already decremented; k here is k_actual - 1
+                    int k = strictGrid[cell.r()][cell.c()];
+                    int l = looseGrid[cell.r()][cell.c()];
+                    // negate addDelta at k: -(cellScore(k+1,l) - cellScore(k,l))
+                    if (k == 0)      delta -= 3.0 - (l == 1 ? 2.0 : 0.0);
+                    else if (k == 1) delta -= -5.0;
+                    else             delta -= -1.0;
                 }
             }
         } else {
             for (GridCell cell : pp.cells()) {
-                if (strictGrid[cell.r()][cell.c()] == 0 && looseGrid[cell.r()][cell.c()] == 0) {
-                    delta -= W_LOOSE_OPEN_CELLS;
+                // Grid is already decremented; k here is k_actual - 1
+                int s = strictGrid[cell.r()][cell.c()];
+                int k = looseGrid[cell.r()][cell.c()];
+                // negate addDelta at k
+                if (s == 0) {
+                    if (k == 0)      delta -= 2.0;
+                    else if (k == 1) delta -= -2.0;
                 }
-                delta -= W_LOOSE_LOOSE_CELLS * looseGrid[cell.r()][cell.c()];
             }
+            delta -= HexGrid.countOverflowCells(pp.row(), pp.col(), plant.widthIn(), gridRows, gridCols, 2) * 2.0;
         }
 
         // Restore grid

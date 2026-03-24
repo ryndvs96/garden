@@ -62,7 +62,32 @@ public class LocalSearchEngine implements SearchEngine {
 
         Random rng = new Random(config.baseSeed() + startIdx);
 
-        PlacementState state = randomFullPlacement(plants, config.gridRows(), config.gridCols(), rng, config.penaltyMode());
+        // Sanity check: total plant count should never change during the search.
+        final int expectedTotal = plants.size() + config.fixedPlants().size();
+
+        PlacementState state;
+        if (startIdx == 0 && !config.warmStart().isEmpty()) {
+            // Warm start: use the caller-supplied placement as the initial state.
+            // This guarantees the search result is never worse than the current arrangement.
+            Set<PlantInstance> warmPlants = new java.util.HashSet<>();
+            for (PlacedPlant pp : config.warmStart()) warmPlants.add(pp.plant());
+
+            List<PlacedPlant> placed = new ArrayList<>(config.fixedPlants());
+            for (PlacedPlant pp : config.warmStart()) placed.add(pp.withLocked(false));
+            List<PlantInstance> unplaced = new ArrayList<>();
+            for (PlantInstance p : plants) {
+                if (!warmPlants.contains(p)) unplaced.add(p);
+            }
+            state = new PlacementState(placed, unplaced, config.gridRows(), config.gridCols(), config.penaltyMode());
+        } else {
+            state = randomFullPlacement(plants, config.fixedPlants(), config.gridRows(), config.gridCols(), rng, config.penaltyMode());
+        }
+
+        int actualTotal = state.getPlaced().size() + state.getUnplaced().size();
+        if (actualTotal != expectedTotal) {
+            System.err.printf("[LocalSearchEngine] WARNING: plant count mismatch at start %d — expected %d, got %d%n",
+                    startIdx, expectedTotal, actualTotal);
+        }
 
         int patience = 20;
         int noImprove = 0;
@@ -76,20 +101,23 @@ public class LocalSearchEngine implements SearchEngine {
 
             boolean strictImproved = false;
 
-            // Move: try relocating the N least-valuable placed plants
+            // Move: try relocating the N least-valuable placed plants (skip locked)
             if (!state.getPlaced().isEmpty()) {
-                // Score remove_delta for all placed; pick N worst (highest remove_delta = easiest to remove)
+                // Score remove_delta for all movable (unlocked) placed plants
                 int n = state.getPlaced().size();
-                double[] removeDeltas = new double[n];
+                List<Integer> movable = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
+                    if (!state.getPlaced().get(i).locked()) movable.add(i);
+                }
+                double[] removeDeltas = new double[n];
+                for (int i : movable) {
                     removeDeltas[i] = state.removeDelta(i);
                     metrics.recordState();
                 }
 
                 // Pick indices of top nRelocate by remove_delta (descending)
-                Integer[] indices = new Integer[n];
-                for (int i = 0; i < n; i++) indices[i] = i;
-                int topN = Math.min(nRelocate, n);
+                Integer[] indices = movable.toArray(new Integer[0]);
+                int topN = Math.min(nRelocate, indices.length);
                 Arrays.sort(indices, (a, b) -> Double.compare(removeDeltas[b], removeDeltas[a]));
 
                 double bestNet = Double.NEGATIVE_INFINITY;
@@ -149,11 +177,14 @@ public class LocalSearchEngine implements SearchEngine {
                     if (lnsKicks >= maxLnsKicks || state.getPlaced().size() < lnsK) break;
                     lnsKicks++;
                     noImprove = 0;
-                    int k = Math.min(lnsK, state.getPlaced().size());
-                    List<Integer> idxList = new ArrayList<>();
-                    for (int i = 0; i < state.getPlaced().size(); i++) idxList.add(i);
-                    Collections.shuffle(idxList, rng);
-                    List<Integer> victimIndices = new ArrayList<>(idxList.subList(0, k));
+                    List<Integer> movableIdxList = new ArrayList<>();
+                    for (int i = 0; i < state.getPlaced().size(); i++) {
+                        if (!state.getPlaced().get(i).locked()) movableIdxList.add(i);
+                    }
+                    int k = Math.min(lnsK, movableIdxList.size());
+                    if (k == 0) break;
+                    Collections.shuffle(movableIdxList, rng);
+                    List<Integer> victimIndices = new ArrayList<>(movableIdxList.subList(0, k));
                     victimIndices.sort(Collections.reverseOrder());
                     List<PlantInstance> destroyed = new ArrayList<>();
                     for (int idx : victimIndices) {
@@ -185,10 +216,9 @@ public class LocalSearchEngine implements SearchEngine {
             }
         }
 
-        metrics.updateBest(state.getScore());
-
-        // CAS-based global best update
+        // CAS-based global best update — use fullScore() via snapshot to avoid incremental drift
         PlacementState snapshot = state.snapshot();
+        metrics.updateBest(snapshot.getScore());
         globalBest.getAndUpdate(prev -> {
             if (prev == null || snapshot.getScore() > prev.getScore()) return snapshot;
             return prev;
@@ -215,6 +245,7 @@ public class LocalSearchEngine implements SearchEngine {
             for (int i = 0; i < state.getPlaced().size(); i++) {
                 PlacedPlant pp = state.getPlaced().get(i);
                 if (!pp.plant().isStrict()) continue;
+                if (pp.locked()) continue;
                 boolean hasOverlap = false;
                 for (GridCell cell : pp.cells()) {
                     if (state.getStrictGrid()[cell.r()][cell.c()] >= 2) {
@@ -258,7 +289,17 @@ public class LocalSearchEngine implements SearchEngine {
     public static PlacedPlant makePlacedPlant(PlantInstance plant, int row, int col, int gridRows, int gridCols) {
         Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), plant.isStrict(), gridRows, gridCols);
         if (cells == null) return null;
-        return new PlacedPlant(plant, row, col, cells, false);
+        return PlacedPlant.builder().plant(plant).row(row).col(col).cells(cells).locked(false).build();
+    }
+
+    /**
+     * Like makePlacedPlant but always clips footprint to grid bounds (never returns null due to border overflow).
+     * Used for manual plant movement so strict plants can be pushed to the bed edge.
+     */
+    public static PlacedPlant makePlacedPlantClipped(PlantInstance plant, int row, int col, int gridRows, int gridCols) {
+        Set<GridCell> cells = HexGrid.computeCells(row, col, plant.widthIn(), false, gridRows, gridCols);
+        if (cells == null) return null;
+        return PlacedPlant.builder().plant(plant).row(row).col(col).cells(cells).locked(false).build();
     }
 
     public static PositionLists enumerateValidPositions(PlantInstance plant, int gridRows, int gridCols) {
@@ -348,25 +389,34 @@ public class LocalSearchEngine implements SearchEngine {
                 delta += PlacementState.W_STRICT_STRICT_PAIR * touching.size();
             } else {
                 for (GridCell cell : pp.cells()) {
-                    delta += PlacementState.W_STRICT_STRICT_CELLS * strictGrid[cell.r()][cell.c()];
+                    int k = strictGrid[cell.r()][cell.c()];
+                    int l = looseGrid[cell.r()][cell.c()];
+                    if (k == 0)      delta += 3.0 - (l == 1 ? 2.0 : 0.0);
+                    else if (k == 1) delta += -5.0;
+                    else             delta += -1.0;
                 }
             }
         } else {
             for (GridCell cell : pp.cells()) {
-                if (strictGrid[cell.r()][cell.c()] == 0 && looseGrid[cell.r()][cell.c()] == 0) {
-                    delta += PlacementState.W_LOOSE_OPEN_CELLS;
+                int s = strictGrid[cell.r()][cell.c()];
+                int k = looseGrid[cell.r()][cell.c()];
+                if (s == 0) {
+                    if (k == 0)      delta += 2.0;
+                    else if (k == 1) delta += -2.0;
                 }
             }
+            delta += HexGrid.countOverflowCells(pp.row(), pp.col(), plant.widthIn(),
+                    state.getGridRows(), state.getGridCols(), 2) * 2.0;
         }
         return delta;
     }
 
     private PlacementState randomFullPlacement(
-            List<PlantInstance> plants, int gridRows, int gridCols, Random rng, PenaltyMode mode) {
+            List<PlantInstance> plants, List<PlacedPlant> fixedPlants, int gridRows, int gridCols, Random rng, PenaltyMode mode) {
         List<PlantInstance> order = new ArrayList<>(plants);
         Collections.shuffle(order, rng);
 
-        List<PlacedPlant> placed = new ArrayList<>();
+        List<PlacedPlant> placed = new ArrayList<>(fixedPlants);
         List<PlantInstance> unplaced = new ArrayList<>();
 
         for (PlantInstance plant : order) {

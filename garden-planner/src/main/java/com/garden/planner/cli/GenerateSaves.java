@@ -48,16 +48,9 @@ public class GenerateSaves {
         File savesDir = new File("saves");
         savesDir.mkdirs();
 
-        SearchConfig config = new SearchConfig(
-            30,              // nStarts
-            400,             // nIters
-            PenaltyMode.CELL,
-            60_000L,         // 60s timeout
-            42L,             // baseSeed
-            150,             // nPositions
-            HexGrid.GRID_ROWS,
-            HexGrid.GRID_COLS
-        );
+        SearchConfig config = SearchConfig.defaults()
+                .timeoutMs(60_000L)
+                .build();
 
         for (Map.Entry<String, List<BedPlantSpec>> entry : beds.entrySet()) {
             String bedName = entry.getKey();
@@ -112,9 +105,11 @@ public class GenerateSaves {
             String code = groupCodes.get(sp);
 
             for (int i = 1; i <= spec.count(); i++) {
-                instances.add(new PlantInstance(
-                    spec.zone(), spec.plantType(), spec.plantName(),
-                    widthIn, heightIn, isStrict, i, code));
+                instances.add(PlantInstance.builder()
+                        .zone(spec.zone()).plantType(spec.plantType()).plantName(spec.plantName())
+                        .widthIn(widthIn).heightIn(heightIn).isStrict(isStrict)
+                        .instanceIdx(i).code(code)
+                        .build());
             }
         }
 

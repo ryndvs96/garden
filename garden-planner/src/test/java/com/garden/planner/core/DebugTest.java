@@ -15,10 +15,10 @@ class DebugTest {
     @Test
     void debug_randomFullPlacement_directly() {
         List<PlantInstance> plants = new ArrayList<>();
-        for (int i = 1; i <= 2; i++) plants.add(new PlantInstance("Back","Test","Tall A",6,30,true,i,"A"));
-        for (int i = 1; i <= 2; i++) plants.add(new PlantInstance("Back","Test","Tall B",6,30,true,i,"B"));
-        for (int i = 1; i <= 4; i++) plants.add(new PlantInstance("Back","Test","Short C",3,10,false,i,"C"));
-        for (int i = 1; i <= 6; i++) plants.add(new PlantInstance("Back","Test","Short D",2,6,false,i,"D"));
+        for (int i = 1; i <= 2; i++) plants.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Tall A").widthIn(6).heightIn(30).isStrict(true).instanceIdx(i).code("A").build());
+        for (int i = 1; i <= 2; i++) plants.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Tall B").widthIn(6).heightIn(30).isStrict(true).instanceIdx(i).code("B").build());
+        for (int i = 1; i <= 4; i++) plants.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Short C").widthIn(3).heightIn(10).isStrict(false).instanceIdx(i).code("C").build());
+        for (int i = 1; i <= 6; i++) plants.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Short D").widthIn(2).heightIn(6).isStrict(false).instanceIdx(i).code("D").build());
 
         Random rng = new Random(42);
         List<PlantInstance> order = new ArrayList<>(plants);
@@ -54,12 +54,15 @@ class DebugTest {
     @Test
     void debug_singleStart_search() {
         List<PlantInstance> plants = new ArrayList<>();
-        for (int i = 1; i <= 2; i++) plants.add(new PlantInstance("Back","Test","Tall A",6,30,true,i,"A"));
-        for (int i = 1; i <= 2; i++) plants.add(new PlantInstance("Back","Test","Tall B",6,30,true,i,"B"));
-        for (int i = 1; i <= 4; i++) plants.add(new PlantInstance("Back","Test","Short C",3,10,false,i,"C"));
-        for (int i = 1; i <= 6; i++) plants.add(new PlantInstance("Back","Test","Short D",2,6,false,i,"D"));
+        for (int i = 1; i <= 2; i++) plants.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Tall A").widthIn(6).heightIn(30).isStrict(true).instanceIdx(i).code("A").build());
+        for (int i = 1; i <= 2; i++) plants.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Tall B").widthIn(6).heightIn(30).isStrict(true).instanceIdx(i).code("B").build());
+        for (int i = 1; i <= 4; i++) plants.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Short C").widthIn(3).heightIn(10).isStrict(false).instanceIdx(i).code("C").build());
+        for (int i = 1; i <= 6; i++) plants.add(PlantInstance.builder().zone("Back").plantType("Test").plantName("Short D").widthIn(2).heightIn(6).isStrict(false).instanceIdx(i).code("D").build());
 
-        SearchConfig config = new SearchConfig(1, 50, PenaltyMode.CELL, 10000L, 42L, 80, 7, 12);
+        SearchConfig config = SearchConfig.defaults()
+                .nStarts(1).nIters(50).timeoutMs(10_000L).nPositions(80)
+                .gridRows(7).gridCols(12)
+                .build();
         SearchMetrics metrics = new SearchMetrics();
         AtomicBoolean cancelled = new AtomicBoolean(false);
 

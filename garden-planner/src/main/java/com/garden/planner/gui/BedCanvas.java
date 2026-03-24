@@ -12,8 +12,15 @@ import java.util.*;
 
 /**
  * Canvas that draws the hex grid with placed plants.
+ *
+ * The visual canvas is 2 cells wider/taller on each side than the actual bed
+ * (GHOST_PAD = 2). Plant footprints that overflow the bed boundary are rendered
+ * in the ghost zone with fading transparency — 1 cell outside is semi-transparent,
+ * 2 cells outside is nearly invisible. The bed boundary line is drawn on top.
  */
 public class BedCanvas extends Canvas {
+
+    private static final int GHOST_PAD = 2; // extra cells rendered outside the bed on each side
 
     private double cellSize = 12.0; // pixels per hex cell (mutable for zoom)
 
@@ -57,12 +64,12 @@ public class BedCanvas extends Canvas {
 
     private double computeWidth() {
         if (state == null) return 900;
-        return (state.getGridCols() + 1.5) * cellSize;
+        return (state.getGridCols() + 2 * GHOST_PAD + 1.5) * cellSize;
     }
 
     private double computeHeight() {
         if (state == null) return 300;
-        return (state.getGridRows() * HexGrid.HEX_V_SPACING + 1.5) * cellSize;
+        return ((state.getGridRows() + 2 * GHOST_PAD) * HexGrid.HEX_V_SPACING + 1.5) * cellSize;
     }
 
     public void redraw() {
@@ -79,7 +86,7 @@ public class BedCanvas extends Canvas {
         int gridCols = state.getGridCols();
         int[][] strictGrid = state.getStrictGrid();
 
-        // Draw grid background cells — skip any cell covered by a plant
+        // Draw grid background cells inside the actual bed — skip cells covered by a plant
         Set<GridCell> plantCells = new HashSet<>();
         for (PlacedPlant pp : state.getPlaced()) plantCells.addAll(pp.cells());
 
@@ -97,7 +104,7 @@ public class BedCanvas extends Canvas {
         //   Pass 1 — loose, non-selected (semi-transparent, behind everything)
         //   Pass 2 — strict, non-selected (opaque, on top of loose)
         //   Pass 3 — selected plant (halo + fill, always on top)
-        // Then bed boundary on top of all fills, then labels.
+        // Then ghost overflow, then bed boundary, then labels.
         List<PlacedPlant> placed = state.getPlaced();
 
         for (int pass = 1; pass <= 3; pass++) {
@@ -113,36 +120,45 @@ public class BedCanvas extends Canvas {
                 for (GridCell cell : pp.cells()) {
                     double[] xy = cellToXY(cell.r(), cell.c());
 
-                    // Edge fade: cells at the grid boundary are more transparent
-                    int distFromEdge = Math.min(
-                        Math.min(cell.r(), gridRows - 1 - cell.r()),
-                        Math.min(cell.c(), gridCols - 1 - cell.c()));
-                    double edgeFade = distFromEdge == 0 ? 0.35 : (distFromEdge == 1 ? 0.72 : 1.0);
-
                     if (isSelected) {
-                        gc.setFill(Color.WHITE.deriveColor(0, 1, 1, edgeFade));
+                        gc.setFill(Color.WHITE.deriveColor(0, 1, 1, 1.0));
                         drawFilledHex(gc, xy[0], xy[1], cellSize * 0.68);
                     }
                     if (pp.plant().isStrict()) {
                         boolean overlap = strictGrid[cell.r()][cell.c()] >= 2;
                         gc.setFill(overlap
-                            ? color.deriveColor(0, 1.1, 0.55, edgeFade)
-                            : color.deriveColor(0, 1.0, 1.0, edgeFade));
+                            ? color.deriveColor(0, 1.1, 0.55, 1.0)
+                            : color.deriveColor(0, 1.0, 1.0, 1.0));
                     } else {
                         boolean overStrict = strictGrid[cell.r()][cell.c()] > 0;
                         gc.setFill(overStrict
-                            ? color.deriveColor(0, 1.0, 0.62, 0.88 * edgeFade)
-                            : color.deriveColor(0, 1.0, 0.80, 0.72 * edgeFade));
+                            ? color.deriveColor(0, 1.0, 0.62, 0.88)
+                            : color.deriveColor(0, 1.0, 0.80, 0.72));
                     }
                     drawFilledHex(gc, xy[0], xy[1], cellSize * 0.58);
                 }
             }
         }
 
-        // Bed boundary drawn after fills so it always shows over edge plants
+        // Ghost overflow pass: render cells that extend outside the bed boundary,
+        // fading as they go further out (1 cell out → semi-transparent, 2 → nearly gone).
+        for (PlacedPlant pp : placed) {
+            Color color = getSpeciesColor(pp.plant().plantType() + "|" + pp.plant().plantName());
+            for (int[] ghost : ghostCells(pp, gridRows, gridCols)) {
+                int nr = ghost[0], nc = ghost[1], dist = ghost[2];
+                double alpha = dist == 1 ? 0.45 : 0.18;
+                double[] xy = cellToXY(nr, nc);
+                gc.setFill(pp.plant().isStrict()
+                    ? color.deriveColor(0, 1.0, 1.0, alpha)
+                    : color.deriveColor(0, 1.0, 0.80, 0.72 * alpha));
+                drawFilledHex(gc, xy[0], xy[1], cellSize * 0.58);
+            }
+        }
+
+        // Bed boundary drawn after all fills so it always shows over overflow plants
         drawBedBoundary(gc, gridRows, gridCols);
 
-        // Pass 4: labels (drawn over all fills)
+        // Labels (drawn over all fills)
         for (PlacedPlant pp : placed) {
             double[] center = cellToXY(pp.row(), pp.col());
             double availWidth = Math.sqrt(pp.cells().size()) * cellSize;
@@ -174,32 +190,71 @@ public class BedCanvas extends Canvas {
         gc.setLineDashes(null);
     }
 
+    /**
+     * Returns cells of pp's hex footprint that fall outside the grid but within
+     * GHOST_PAD cells of the boundary. Each entry is {row, col, distOutside}.
+     */
+    private List<int[]> ghostCells(PlacedPlant pp, int gridRows, int gridCols) {
+        int width = pp.plant().widthIn();
+        int radius = width / 2;
+        int row = pp.row(), col = pp.col();
+
+        // Cube-coordinate centre (same formula as HexGrid.computeCells)
+        int cx = col - (row - (row & 1)) / 2;
+        int cz = row;
+
+        List<int[]> result = new ArrayList<>();
+        for (int dx = -radius; dx <= radius; dx++) {
+            int dzMin = Math.max(-radius, -dx - radius);
+            int dzMax = Math.min( radius,  radius - dx);
+            for (int dz = dzMin; dz <= dzMax; dz++) {
+                int ax = cx + dx;
+                int az = cz + dz;
+                int nr = az;
+                int nc = ax + (az - (az & 1)) / 2;
+
+                // Skip cells already inside the grid (rendered in the main passes)
+                if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) continue;
+
+                // How many cells outside the grid boundary?
+                int rowOut = Math.max(0, Math.max(-nr, nr - (gridRows - 1)));
+                int colOut = Math.max(0, Math.max(-nc, nc - (gridCols - 1)));
+                int dist   = Math.max(rowOut, colOut);
+
+                if (dist <= GHOST_PAD) {
+                    result.add(new int[]{nr, nc, dist});
+                }
+            }
+        }
+        return result;
+    }
+
     /** Nearest (row, col) for canvas coordinates (x, y). */
     public int[] xyToCell(double x, double y) {
-        int row = (int) Math.round((y - cellSize) / (HexGrid.HEX_V_SPACING * cellSize));
+        int row = (int) Math.round((y - cellSize) / (HexGrid.HEX_V_SPACING * cellSize)) - GHOST_PAD;
         row = Math.max(0, Math.min(state != null ? state.getGridRows() - 1 : 0, row));
-        double xAdj = x - cellSize - (row % 2 == 1 ? cellSize * 0.5 : 0.0);
+        double xAdj = x - (1 + GHOST_PAD) * cellSize - (Math.floorMod(row, 2) == 1 ? cellSize * 0.5 : 0.0);
         int col = (int) Math.round(xAdj / cellSize);
         col = Math.max(0, Math.min(state != null ? state.getGridCols() - 1 : 0, col));
         return new int[]{row, col};
     }
 
-    /** Draw a thin border around the full hex grid extent. */
+    /** Draw the bed boundary at the actual grid extents (offset inward from the ghost zone). */
     private void drawBedBoundary(GraphicsContext gc, int gridRows, int gridCols) {
-        double x0 = cellSize * 0.5;
-        double y0 = cellSize * 0.5;
-        double x1 = (gridCols + 1.0) * cellSize;
-        double y1 = (gridRows * HexGrid.HEX_V_SPACING + 1.0) * cellSize;
+        double x0 = (GHOST_PAD + 0.5) * cellSize;
+        double y0 = (GHOST_PAD * HexGrid.HEX_V_SPACING + 0.5) * cellSize;
+        double x1 = (gridCols + GHOST_PAD + 1.0) * cellSize;
+        double y1 = ((gridRows + GHOST_PAD) * HexGrid.HEX_V_SPACING + 1.0) * cellSize;
         gc.setStroke(Color.web("#555544"));
         gc.setLineWidth(2.0);
         gc.setLineDashes(null);
         gc.strokeRect(x0, y0, x1 - x0, y1 - y0);
     }
 
-    /** Convert (row, col) hex offset coords to canvas (x, y). */
+    /** Convert (row, col) hex offset coords to canvas (x, y), offset by GHOST_PAD. */
     private double[] cellToXY(int row, int col) {
-        double x = (col + (row % 2 == 1 ? 0.5 : 0.0)) * cellSize + cellSize;
-        double y = row * HexGrid.HEX_V_SPACING * cellSize + cellSize;
+        double x = (col + GHOST_PAD + (Math.floorMod(row, 2) == 1 ? 0.5 : 0.0)) * cellSize + cellSize;
+        double y = (row + GHOST_PAD) * HexGrid.HEX_V_SPACING * cellSize + cellSize;
         return new double[]{x, y};
     }
 
@@ -237,8 +292,6 @@ public class BedCanvas extends Canvas {
     }
 
     private Color getSpeciesColor(String key) {
-        // Use the key's hash so the same species always maps to the same palette slot,
-        // regardless of encounter order across regens.
         int idx = (key.hashCode() & Integer.MAX_VALUE) % PALETTE.size();
         return PALETTE.get(idx);
     }

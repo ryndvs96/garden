@@ -26,8 +26,8 @@ public class ActivityBar extends VBox {
 
         ToggleGroup group = new ToggleGroup();
 
-        ToggleButton explorerBtn = makeBtn("\uD83D\uDCC1", "Explorer", group); // 📁
-        ToggleButton seedBtn     = makeBtn("\uD83C\uDF31", "Seed Bank", group); // 🌱
+        ToggleButton explorerBtn = makeBtn("\u2630", "Explorer", group);  // ☰
+        ToggleButton seedBtn     = makeBtn("\u273F", "Seed Bank", group); // ✿
 
         explorerBtn.setOnAction(e -> { if (onViewChanged != null) onViewChanged.accept(ActivityView.EXPLORER); });
         seedBtn.setOnAction(e ->     { if (onViewChanged != null) onViewChanged.accept(ActivityView.SEED_BANK); });

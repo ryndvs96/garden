@@ -139,12 +139,14 @@ class ScoringPreferenceTest {
         // where most cells are buried under strict plants.
         // widthIn=7 → radius 3 → 7-cell footprint.
         BedScenario allFree = new BedScenario(28, 48)
-                .loose("Alyssum", 4, 40, 7);   // nothing nearby — all 7 cells open
+                .strict("Tomato",  4, 10, 6)
+                .strict("Tomato",  4, 16, 6)
+                .loose("Alyssum", 4, 40, 7);   // far from strict plants — all 7 cells open ground
 
         BedScenario mostBuried = new BedScenario(28, 48)
                 .strict("Tomato",  4, 10, 6)
                 .strict("Tomato",  4, 16, 6)   // two strict plants crowd the centre
-                .loose ("Alyssum", 4, 13, 7);  // flower between them: most cells buried
+                .loose ("Alyssum", 4, 13, 7);  // flower between them: most cells buried under strict
 
         allFree.assertScoresHigherThan(mostBuried,
                 "loose flower with all cells in open space",
@@ -301,10 +303,11 @@ class ScoringPreferenceTest {
         // ── internals ────────────────────────────────────────────────────────
 
         private BedScenario add(String name, int widthIn, boolean isStrict, int row, int col) {
-            PlantInstance pi = new PlantInstance(
-                    "Any", isStrict ? "Veg" : "Flower", name,
-                    widthIn, isStrict ? 24 : 12, isStrict, nextIdx++,
-                    name.substring(0, 1));
+            PlantInstance pi = PlantInstance.builder()
+                    .zone("Any").plantType(isStrict ? "Veg" : "Flower").plantName(name)
+                    .widthIn(widthIn).heightIn(isStrict ? 24 : 12).isStrict(isStrict)
+                    .instanceIdx(nextIdx++).code(name.substring(0, 1))
+                    .build();
             PlacedPlant pp = LocalSearchEngine.makePlacedPlant(pi, row, col, rows, cols);
             assertThat(pp)
                     .as("Could not place '%s' at (%d,%d) — out of bounds for a %dx%d bed?",

@@ -16,7 +16,6 @@ import java.util.*;
  */
 public class SeedDataLoader {
     private static final Logger log = LoggerFactory.getLogger(SeedDataLoader.class);
-    private static final int DEFAULT_WIDTH = 12;
     private static final int DEFAULT_HEIGHT = 999;
 
     public Map<PlantSpecies, int[]> load(String csvPath) throws IOException {

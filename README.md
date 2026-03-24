@@ -2,6 +2,8 @@
 
 A JavaFX desktop app for optimizing plant placement in raised garden beds. Seeds are loaded from a global seed bank, arranged on a hexagonal grid divided into zones, and a search engine finds the best non-overlapping layout.
 
+![Garden Planner screenshot](screenshot.png)
+
 ## Requirements
 
 - Java 21+
@@ -32,7 +34,7 @@ Open a bed tab and click **Add Plants** to pick from the seed bank. Then click *
 | Action | Key / Mouse |
 |--------|-------------|
 | Select a plant | Click or Tab |
-| Move selected plant | Arrow keys or W A S |
+| Move selected plant | Arrow keys |
 | Lock plant in place | L |
 | Edit plant properties | Enter |
 | Duplicate plant | D |
@@ -52,6 +54,10 @@ garden-planner/      # JavaFX app (Maven project)
     gui/             # MainController, BedEditorPane, BedCanvas
 saves/               # JSON placement saves (written at runtime)
 ```
+
+## Feature Requests
+
+Planned features and ideas are tracked in [FEATURE_REQUESTS.md](FEATURE_REQUESTS.md).
 
 ## Running Tests
 

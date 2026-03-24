@@ -77,7 +77,7 @@ public class StateSerializer {
                     cells.add(new GridCell(cellNode.get("r").asInt(), cellNode.get("c").asInt()));
                 }
             }
-            placed.add(new PlacedPlant(plant, row, col, cells, locked));
+            placed.add(PlacedPlant.builder().plant(plant).row(row).col(col).cells(cells).locked(locked).build());
         }
 
         List<PlantInstance> unplaced = new ArrayList<>();
@@ -107,15 +107,15 @@ public class StateSerializer {
     }
 
     private PlantInstance plantInstanceFromJson(JsonNode node) {
-        return new PlantInstance(
-            node.get("zone").asText(),
-            node.get("plantType").asText(),
-            node.get("plantName").asText(),
-            node.get("widthIn").asInt(),
-            node.get("heightIn").asInt(),
-            node.get("isStrict").asBoolean(),
-            node.get("instanceIdx").asInt(),
-            node.get("code").asText()
-        );
+        return PlantInstance.builder()
+                .zone(node.get("zone").asText())
+                .plantType(node.get("plantType").asText())
+                .plantName(node.get("plantName").asText())
+                .widthIn(node.get("widthIn").asInt())
+                .heightIn(node.get("heightIn").asInt())
+                .isStrict(node.get("isStrict").asBoolean())
+                .instanceIdx(node.get("instanceIdx").asInt())
+                .code(node.get("code").asText())
+                .build();
     }
 }

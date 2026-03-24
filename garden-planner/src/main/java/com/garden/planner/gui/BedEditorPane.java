@@ -52,8 +52,25 @@ public class BedEditorPane extends BorderPane {
     private boolean dirty = false;
     private Consumer<Boolean> onDirtyChanged;
 
+    // Undo stack
+    private static final int MAX_UNDO = 50;
+    private final ArrayDeque<PlacementState> undoStack = new ArrayDeque<>();
+
+    // Move-undo anchor: snapshot taken when a plant is first selected so that
+    // deselecting after N moves pushes the pre-selection state as one undo entry.
+    private PlacementState moveAnchorState = null;
+    private int moveAnchorInstanceIdx = -1;
+
+    /** Fired after a species edit so MainController can propagate to seedbank + other beds. */
+    @FunctionalInterface
+    public interface SpeciesEditListener {
+        void onEdit(String oldType, String oldName, PlantEditorDialog.PlantFormData data);
+    }
+    private SpeciesEditListener onSpeciesEdited;
+    public void setOnSpeciesEdited(SpeciesEditListener listener) { this.onSpeciesEdited = listener; }
+
     private static final String STATUS_IDLE =
-            "Click or Tab: select  \u2022  \u2190\u2191\u2192\u2193/WAS: move  \u2022  D: duplicate  \u2022  Enter: properties  \u2022  L: lock  \u2022  Del: remove  \u2022  Esc: deselect  \u2022  Ctrl+S: save";
+            "Click or Tab: select  \u2022  \u2190\u2191\u2192\u2193: move  \u2022  Enter: properties  \u2022  L: lock  \u2022  Del: remove  \u2022  Esc: deselect  \u2022  Ctrl+S: save";
 
     @SuppressWarnings("this-escape")
     public BedEditorPane(Stage stage, BedConfig config, Path bedsDir, SeedBank seedBank) {
@@ -80,7 +97,6 @@ public class BedEditorPane extends BorderPane {
         selectionHeader.setVisible(false);
 
         Button regenBtn    = new Button("Regenerate");
-        Button addPlantBtn = new Button("Add Plant");
         editBtn            = new Button("Properties");
         editBtn.setDisable(true);
         lockCheck = new CheckBox("Locked");
@@ -89,10 +105,11 @@ public class BedEditorPane extends BorderPane {
         Button zoomOutBtn = new Button("\u2013");
 
         Button flowerFillBtn = new Button("Flower Fill");
+        Button undoBtn       = new Button("Undo");
 
         regenBtn.setOnAction(e -> doRegenerate());
         flowerFillBtn.setOnAction(e -> doFlowerFill());
-        addPlantBtn.setOnAction(e -> doAddPlant());
+        undoBtn.setOnAction(e -> doUndo());
         editBtn.setOnAction(e -> doEditPlant());
         zoomInBtn.setOnAction(e -> canvas.zoom(1.25));
         zoomOutBtn.setOnAction(e -> canvas.zoom(0.8));
@@ -105,7 +122,9 @@ public class BedEditorPane extends BorderPane {
 
         HBox toolbar = new HBox(8, regenBtn, flowerFillBtn,
                 new Separator(javafx.geometry.Orientation.VERTICAL),
-                addPlantBtn, editBtn, lockCheck,
+                undoBtn,
+                new Separator(javafx.geometry.Orientation.VERTICAL),
+                editBtn, lockCheck,
                 new Separator(javafx.geometry.Orientation.VERTICAL),
                 zoomOutBtn, zoomInBtn);
         toolbar.setPadding(new Insets(6, 10, 6, 10));
@@ -123,8 +142,30 @@ public class BedEditorPane extends BorderPane {
         VBox centerBox = new VBox(selectionHeader, centerStack);
         VBox.setVgrow(centerStack, Priority.ALWAYS);
 
+        // Drag handle — grab left edge of stats panel to resize it
+        Region resizeHandle = new Region();
+        resizeHandle.setPrefWidth(5);
+        resizeHandle.setMinWidth(5);
+        resizeHandle.setMaxWidth(5);
+        resizeHandle.setStyle("-fx-background-color: #bbba9a; -fx-cursor: h-resize;");
+
+        final double[] resizeDrag = {0, 0};
+        resizeHandle.setOnMousePressed(e -> {
+            resizeDrag[0] = e.getScreenX();
+            resizeDrag[1] = statsPanel.getPrefWidth();
+        });
+        resizeHandle.setOnMouseDragged(e -> {
+            double delta = resizeDrag[0] - e.getScreenX();
+            double newWidth = Math.max(160, resizeDrag[1] + delta);
+            statsPanel.setPrefWidth(newWidth);
+            statsPanel.setMinWidth(newWidth);
+        });
+
+        HBox statsWrapper = new HBox(resizeHandle, statsPanel);
+        HBox.setHgrow(statsPanel, Priority.ALWAYS);
+
         setCenter(centerBox);
-        setRight(statsPanel);
+        setRight(statsWrapper);
         setBottom(bottomBox);
 
         // Ctrl+scroll to zoom
@@ -154,6 +195,12 @@ public class BedEditorPane extends BorderPane {
 
             if (event.isControlDown() && code == KeyCode.S) {
                 doSave();
+                event.consume();
+                return;
+            }
+
+            if (event.isShortcutDown() && code == KeyCode.Z) {
+                doUndo();
                 event.consume();
                 return;
             }
@@ -188,10 +235,10 @@ public class BedEditorPane extends BorderPane {
             if (sel >= 0 && sel < state.getPlaced().size()) {
                 int dr = 0, dc = 0;
                 boolean isMove = false;
-                if      (code == KeyCode.UP    || code == KeyCode.W) { dr = -1; isMove = true; }
-                else if (code == KeyCode.DOWN  || code == KeyCode.S) { dr =  1; isMove = true; }
-                else if (code == KeyCode.LEFT  || code == KeyCode.A) { dc = -1; isMove = true; }
-                else if (code == KeyCode.RIGHT)                      { dc =  1; isMove = true; }
+                if      (code == KeyCode.UP)    { dr = -1; isMove = true; }
+                else if (code == KeyCode.DOWN)  { dr =  1; isMove = true; }
+                else if (code == KeyCode.LEFT)  { dc = -1; isMove = true; }
+                else if (code == KeyCode.RIGHT) { dc =  1; isMove = true; }
 
                 if (isMove) {
                     moveSelected(sel, dr, dc);
@@ -322,8 +369,64 @@ public class BedEditorPane extends BorderPane {
         if (onDirtyChanged != null) onDirtyChanged.accept(d);
     }
 
+    private void pushUndo() {
+        if (state == null) return;
+        if (undoStack.size() >= MAX_UNDO) undoStack.removeLast();
+        undoStack.push(state.snapshot());
+    }
+
+    private void doUndo() {
+        if (undoStack.isEmpty()) return;
+        moveAnchorState = null;
+        moveAnchorInstanceIdx = -1;
+        state = undoStack.pop();
+        setDirty(true);
+        canvas.setState(state);
+        statsPanel.update(state);
+        statsPanel.updateSearch(null);
+        selectPlant(-1);
+    }
+
     /** Central method to update all selection-dependent UI from a plant index. */
     private void selectPlant(int idx) {
+        // Determine the instanceIdx of the newly selected plant (-1 if deselecting)
+        int newInstanceIdx = (idx >= 0 && state != null && idx < state.getPlaced().size())
+                ? state.getPlaced().get(idx).plant().instanceIdx()
+                : -1;
+
+        // Flush move-anchor only when genuinely switching to a different plant or deselecting.
+        // If the same plant is re-selected (e.g. after an arrow-key move), keep the anchor intact.
+        boolean switchingPlant = (newInstanceIdx != moveAnchorInstanceIdx);
+        if (switchingPlant && moveAnchorState != null && state != null) {
+            // Find the current position of the anchored plant
+            PlacedPlant current = state.getPlaced().stream()
+                    .filter(p -> p.plant().instanceIdx() == moveAnchorInstanceIdx)
+                    .findFirst().orElse(null);
+            if (current != null) {
+                PlacedPlant anchor = moveAnchorState.getPlaced().stream()
+                        .filter(p -> p.plant().instanceIdx() == moveAnchorInstanceIdx)
+                        .findFirst().orElse(null);
+                if (anchor != null
+                        && (anchor.row() != current.row() || anchor.col() != current.col())) {
+                    if (undoStack.size() >= MAX_UNDO) undoStack.removeLast();
+                    undoStack.push(moveAnchorState);
+                }
+            }
+            moveAnchorState = null;
+            moveAnchorInstanceIdx = -1;
+        }
+
+        // Set new move anchor when selecting a plant (only if switching plants)
+        if (switchingPlant) {
+            if (newInstanceIdx >= 0) {
+                moveAnchorState = state.snapshot();
+                moveAnchorInstanceIdx = newInstanceIdx;
+            } else {
+                moveAnchorState = null;
+                moveAnchorInstanceIdx = -1;
+            }
+        }
+
         boolean hasSel = state != null && idx >= 0 && idx < state.getPlaced().size();
         PlacedPlant pp = hasSel ? state.getPlaced().get(idx) : null;
 
@@ -357,16 +460,35 @@ public class BedEditorPane extends BorderPane {
 
     private void doRegenerate() {
         if (state == null) return;
+        pushUndo();
 
-        List<PlacedPlant> lockedPlants = new ArrayList<>();
-        List<PlantInstance> allPlants = new ArrayList<>();
+        List<PlacedPlant> lockedPlants  = new ArrayList<>();
+        List<PlacedPlant> unlockedPlaced = new ArrayList<>();
+        List<PlantInstance> allPlants    = new ArrayList<>();
         for (PlacedPlant pp : state.getPlaced()) {
-            if (pp.locked()) lockedPlants.add(pp);
-            else             allPlants.add(pp.plant());
+            if (pp.locked()) {
+                lockedPlants.add(pp);
+            } else {
+                unlockedPlaced.add(pp);
+                allPlants.add(pp.plant());
+            }
         }
-        allPlants.addAll(state.getUnplaced());
 
-        SearchConfig config = SearchConfig.defaults();
+        // Use the undo snapshot's score as the baseline — it was computed via fullScore()
+        // in the PlacementState constructor, so it has no incremental drift.
+        double previousScore = undoStack.peek().getScore();
+
+        SearchConfig config = SearchConfig.defaults()
+                .gridRows(state.getGridRows())
+                .gridCols(state.getGridCols())
+                .fixedPlants(lockedPlants)
+                .warmStart(unlockedPlaced)
+                .build();
+
+        runSearch(allPlants, config, previousScore);
+    }
+
+    private void runSearch(List<PlantInstance> allPlants, SearchConfig config, double previousScore) {
         SearchMetrics metrics = new SearchMetrics();
         AtomicBoolean cancelled = new AtomicBoolean(false);
 
@@ -377,38 +499,34 @@ public class BedEditorPane extends BorderPane {
             SearchEngine engine = new LocalSearchEngine();
             SearchResult result = engine.search(allPlants, config, metrics, cancelled);
             Platform.runLater(() -> {
-                searchOverlay.stop();
                 lastMetrics = metrics;
-                state = result.state();
-                for (PlacedPlant lp : lockedPlants) {
-                    state.addPlant(lp);
+
+                // Locked plants are now included in the result (they were fixed constraints).
+                PlacementState candidate = result.state();
+                double candidateScore = candidate.snapshot().getScore();
+
+                if (candidateScore > previousScore) {
+                    state = candidate;
+                    setDirty(true);
+                    canvas.setState(state);
+                    statsPanel.update(state);
+                    statsPanel.updateSearch(metrics);
+                    selectPlant(-1);
+                    searchOverlay.showImproved(previousScore, candidateScore);
+                } else {
+                    // No improvement — discard result and pop the undo snapshot
+                    undoStack.poll();
+                    selectPlant(-1);
+                    searchOverlay.showNoImprovement(
+                            () -> runSearch(allPlants, config.withExtraTimeMs(30_000L), previousScore));
                 }
-                setDirty(true);
-                canvas.setState(state);
-                statsPanel.update(state);
-                statsPanel.updateSearch(metrics);
-                selectPlant(-1);
             });
         });
         executor.shutdown();
     }
 
-    private void doAddPlant() {
-        if (state == null) return;
-        new SeedPickerDialog(stage, seedBank).show().ifPresent(req -> {
-            requestFocus();
-            List<PlantInstance> plants = new ArrayList<>();
-            int base = nextInstanceIdx();
-            for (int i = 0; i < req.entries().size(); i++)
-                plants.add(seedEntryToInstance(req.entries().get(i), base + i));
-            if (req.mode() == SeedPickerDialog.AddMode.NORMAL)
-                addPlantsNormal(plants);
-            else
-                addPlantsBestScore(plants);
-        });
-    }
-
     private void addPlantsNormal(List<PlantInstance> plants) {
+        pushUndo();
         int nextCol = 0;
         int lastIdx = -1;
         int failed = 0;
@@ -435,6 +553,7 @@ public class BedEditorPane extends BorderPane {
     }
 
     private void addPlantsBestScore(List<PlantInstance> plants) {
+        pushUndo();
         // Temporarily lock all existing placed plants; remember which were unlocked
         List<Integer> originallyUnlocked = new ArrayList<>();
         for (int i = 0; i < state.getPlaced().size(); i++) {
@@ -472,6 +591,7 @@ public class BedEditorPane extends BorderPane {
 
     private void doFlowerFill() {
         if (state == null) return;
+        pushUndo();
 
         List<SeedEntry> flowerSeeds = seedBank.observableEntries().stream()
                 .filter(e -> e.plantType().toLowerCase().startsWith("flower"))
@@ -492,7 +612,7 @@ public class BedEditorPane extends BorderPane {
                 .map(pp -> pp.withLocked(true))
                 .toList();
         PlacementState snapshot = new PlacementState(
-                lockedList, state.getUnplaced(),
+                lockedList, List.of(),
                 state.getGridRows(), state.getGridCols(), state.getPenaltyMode());
 
         int instanceBase = nextInstanceIdx();
@@ -607,45 +727,83 @@ public class BedEditorPane extends BorderPane {
         int idx = canvas.getSelectedIdx();
         if (idx < 0 || idx >= state.getPlaced().size()) return;
         PlacedPlant pp = state.getPlaced().get(idx);
-        PlantEditorDialog dlg = new PlantEditorDialog(stage, pp.plant());
-        dlg.show().ifPresent(data -> {
+        String oldType = pp.plant().plantType();
+        String oldName = pp.plant().plantName();
+        new PlantEditorDialog(stage, pp.plant()).show().ifPresent(data -> {
             requestFocus();
-            List<PlantInstance> updated = PlantEditorDialog.createInstances(data, pp.plant().instanceIdx());
-            if (updated.isEmpty()) return;
-            PlantInstance newPlant = updated.get(0);
-            boolean wasLocked = pp.locked();
-            state.removePlant(idx);
-            PlacedPlant placed = LocalSearchEngine.makePlacedPlant(newPlant, pp.row(), pp.col(),
-                    state.getGridRows(), state.getGridCols());
-            int newIdx;
-            if (placed != null) {
-                PlacedPlant finalPlant = wasLocked ? placed.withLocked(true) : placed;
-                state.addPlant(finalPlant);
-                newIdx = state.getPlaced().size() - 1;
-            } else {
-                state.getUnplaced().add(newPlant);
-                newIdx = -1;
+            applySpeciesEdit(oldType, oldName, data);
+            if (onSpeciesEdited != null) onSpeciesEdited.onEdit(oldType, oldName, data);
+        });
+    }
+
+    /**
+     * Updates every plant of the given species in this bed to the new properties.
+     * Called for the current bed after a properties edit, and by MainController for
+     * all other open beds when a species edit propagates.
+     */
+    public void applySpeciesEdit(String oldType, String oldName, PlantEditorDialog.PlantFormData data) {
+        if (state == null) return;
+        pushUndo();
+        // Remember selected plant's instanceIdx so we can re-select it after re-ordering
+        int prevInstanceIdx = -1;
+        int prevIdx = canvas.getSelectedIdx();
+        if (prevIdx >= 0 && prevIdx < state.getPlaced().size()) {
+            prevInstanceIdx = state.getPlaced().get(prevIdx).plant().instanceIdx();
+        }
+
+        String newName = data.plantName();
+        String code = newName.length() >= 2 ? newName.substring(0, 2).toUpperCase() : newName.toUpperCase();
+        boolean changed = false;
+
+        // Iterate in reverse so removePlant(i) doesn't shift unvisited indices
+        for (int i = state.getPlaced().size() - 1; i >= 0; i--) {
+            PlacedPlant pp = state.getPlaced().get(i);
+            if (!pp.plant().plantType().equals(oldType) || !pp.plant().plantName().equals(oldName)) continue;
+            PlantInstance newPlant = pp.plant().toBuilder()
+                    .plantType(data.plantType()).plantName(newName)
+                    .widthIn(data.widthIn()).heightIn(data.widthIn())
+                    .isStrict(data.isStrict()).code(code)
+                    .build();
+            state.removePlant(i);
+            PlacedPlant placed = LocalSearchEngine.makePlacedPlant(
+                    newPlant, pp.row(), pp.col(), state.getGridRows(), state.getGridCols());
+            if (placed != null) state.addPlant(placed.withLocked(pp.locked()));
+            changed = true;
+        }
+
+        if (changed) {
+            // Re-find the previously selected plant by instanceIdx
+            int newIdx = -1;
+            if (prevInstanceIdx >= 0) {
+                for (int i = 0; i < state.getPlaced().size(); i++) {
+                    if (state.getPlaced().get(i).plant().instanceIdx() == prevInstanceIdx) {
+                        newIdx = i;
+                        break;
+                    }
+                }
             }
             setDirty(true);
             statsPanel.update(state);
             canvas.setSelectedIdx(newIdx);
             selectPlant(newIdx);
             canvas.redraw();
-        });
+        }
     }
 
     private int nextInstanceIdx() {
         int max = 0;
         for (PlacedPlant pp : state.getPlaced()) max = Math.max(max, pp.plant().instanceIdx());
-        for (PlantInstance pi : state.getUnplaced()) max = Math.max(max, pi.instanceIdx());
         return max + 1;
     }
 
     private PlantInstance seedEntryToInstance(SeedEntry entry, int idx) {
         String name = entry.plantName();
         String code = name.length() >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase();
-        return new PlantInstance("Any", entry.plantType(), name,
-                entry.widthIn(), entry.widthIn(), entry.isStrict(), idx, code);
+        return PlantInstance.builder()
+                .zone("Any").plantType(entry.plantType()).plantName(name)
+                .widthIn(entry.widthIn()).heightIn(entry.widthIn())
+                .isStrict(entry.isStrict()).instanceIdx(idx).code(code)
+                .build();
     }
 
     /** Scan top-left → bottom-right for the first valid placement position. */
@@ -661,7 +819,40 @@ public class BedEditorPane extends BorderPane {
         return null;
     }
 
-    /** Add a placed (or unplaced) plant to state, update UI. */
+    /** Scan for the first position where pp's footprint has no cell overlap with any existing plant. */
+    private PlacedPlant findFirstNonOverlappingPlacement(PlantInstance plant) {
+        int rows = state.getGridRows(), cols = state.getGridCols();
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (state.isCenterOccupied(r, c)) continue;
+                PlacedPlant pp = LocalSearchEngine.makePlacedPlant(plant, r, c, rows, cols);
+                if (pp != null && !state.hasAnyCellOverlap(pp)) return pp;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Add a plant from the seed bank to the current bed: unlocked, first non-overlapping
+     * position, falling back to first valid position if the bed is full.
+     */
+    public void addFromSeed(SeedEntry entry) {
+        if (state == null) return;
+        pushUndo();
+        PlantInstance plant = seedEntryToInstance(entry, nextInstanceIdx());
+        PlacedPlant placed = findFirstNonOverlappingPlacement(plant);
+        if (placed == null) placed = findFirstValidPlacement(plant);
+        if (placed != null) {
+            state.addPlant(placed.withLocked(false));
+            setDirty(true);
+            statsPanel.update(state);
+            canvas.redraw();
+        } else {
+            showError("Plant could not be placed — the bed is full.");
+        }
+    }
+
+    /** Add a plant to state if a valid placement exists, otherwise show an error. */
     private void commitPlacement(PlantInstance plant, PlacedPlant placed) {
         if (placed != null) {
             state.addPlant(placed);
@@ -673,10 +864,7 @@ public class BedEditorPane extends BorderPane {
             canvas.redraw();
             scrollToPlant(newIdx);
         } else {
-            state.getUnplaced().add(plant);
-            setDirty(true);
-            statsPanel.update(state);
-            selectPlant(canvas.getSelectedIdx());
+            showError("No valid placement found — bed may be full.");
         }
     }
 
@@ -684,7 +872,8 @@ public class BedEditorPane extends BorderPane {
         PlacedPlant pp = state.getPlaced().get(idx);
         int newRow = pp.row() + dr;
         int newCol = pp.col() + dc;
-        PlacedPlant moved = LocalSearchEngine.makePlacedPlant(pp.plant(), newRow, newCol,
+        if (newRow < 0 || newRow >= state.getGridRows() || newCol < 0 || newCol >= state.getGridCols()) return;
+        PlacedPlant moved = LocalSearchEngine.makePlacedPlantClipped(pp.plant(), newRow, newCol,
                 state.getGridRows(), state.getGridCols());
         if (moved == null) return;
         state.removePlant(idx);
@@ -706,12 +895,10 @@ public class BedEditorPane extends BorderPane {
     }
 
     private void duplicatePlant(int idx) {
+        pushUndo();
         PlacedPlant orig = state.getPlaced().get(idx);
         PlantInstance plant = orig.plant();
-        PlantInstance newPlant = new PlantInstance(
-                plant.zone(), plant.plantType(), plant.plantName(),
-                plant.widthIn(), plant.heightIn(), plant.isStrict(),
-                nextInstanceIdx(), plant.code());
+        PlantInstance newPlant = plant.toBuilder().instanceIdx(nextInstanceIdx()).build();
 
         // Try one cell to the right; fall back to first valid placement from there, then anywhere
         int rows = state.getGridRows(), cols = state.getGridCols();
@@ -740,6 +927,7 @@ public class BedEditorPane extends BorderPane {
     }
 
     private void deletePlant(int idx) {
+        pushUndo();
         state.removePlant(idx);
         setDirty(true);
         canvas.setSelectedIdx(-1);

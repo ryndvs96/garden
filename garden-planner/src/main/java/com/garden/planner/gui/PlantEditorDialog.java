@@ -94,16 +94,16 @@ public class PlantEditorDialog {
                 ? name.substring(0, 2).toUpperCase()
                 : name.toUpperCase();
         for (int i = 0; i < data.count(); i++) {
-            result.add(new PlantInstance(
-                    data.zone(),
-                    data.plantType(),
-                    data.plantName(),
-                    data.widthIn(),
-                    data.widthIn(), // heightIn approximated as widthIn
-                    data.isStrict(),
-                    baseIdx + i,
-                    code
-            ));
+            result.add(PlantInstance.builder()
+                    .zone(data.zone())
+                    .plantType(data.plantType())
+                    .plantName(data.plantName())
+                    .widthIn(data.widthIn())
+                    .heightIn(data.widthIn()) // heightIn approximated as widthIn
+                    .isStrict(data.isStrict())
+                    .instanceIdx(baseIdx + i)
+                    .code(code)
+                    .build());
         }
         return result;
     }

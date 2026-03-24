@@ -7,6 +7,7 @@ import com.garden.planner.project.BedConfig;
 import com.garden.planner.project.GardenProject;
 import com.garden.planner.project.GardenZone;
 import com.garden.planner.project.SeedBank;
+import com.garden.planner.project.SeedEntry;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -64,6 +65,35 @@ public class MainController extends BorderPane {
         sidebar     = new SidebarController(seedBank);
         activityBar.setOnViewChanged(sidebar::showView);
         wireSidebarCallbacks();
+        sidebar.setOnAddSeed(entry -> {
+            Tab sel = tabPane.getSelectionModel().getSelectedItem();
+            if (sel == null || !(sel.getContent() instanceof BedEditorPane editor)) return;
+
+            // Show out-of-stock alert but still allow the add
+            if (entry.quantity() <= 0) {
+                Alert alert = new Alert(Alert.AlertType.WARNING,
+                        "\"" + entry.plantName() + "\" has 0 left in your seed bank.\n" +
+                        "You can still add it, or delete it from the bed after placing.",
+                        ButtonType.OK);
+                alert.setTitle("Out of Stock");
+                alert.setHeaderText(null);
+                alert.initOwner(stage);
+                alert.showAndWait();
+            }
+
+            // Decrement quantity (clamp at 0)
+            int idx = seedBank.observableEntries().indexOf(entry);
+            if (idx >= 0 && entry.quantity() > 0) {
+                SeedEntry decremented = new SeedEntry(
+                        entry.id(), entry.zone(), entry.plantType(), entry.plantName(),
+                        entry.widthIn(), entry.heightIn(), entry.isStrict(), entry.notes(),
+                        entry.quantity() - 1);
+                seedBank.observableEntries().set(idx, decremented);
+                try { seedBankSerializer.save(seedBank); } catch (Exception ignored) {}
+            }
+
+            editor.addFromSeed(entry);
+        });
 
         HBox leftBox = new HBox(activityBar, sidebar);
 
@@ -186,6 +216,25 @@ public class MainController extends BorderPane {
 
         BedEditorPane editor = new BedEditorPane(stage, config, currentProject.bedsDir(), seedBank);
         editor.setOnDirtyChanged(dirty -> updateTabTitle(config.id(), dirty));
+        editor.setOnSpeciesEdited((oldType, oldName, data) -> {
+            // Update matching seedbank entry
+            for (int i = 0; i < seedBank.observableEntries().size(); i++) {
+                SeedEntry e = seedBank.observableEntries().get(i);
+                if (e.plantType().equals(oldType) && e.plantName().equals(oldName)) {
+                    seedBank.observableEntries().set(i, new SeedEntry(
+                            e.id(), e.zone(), data.plantType(), data.plantName(),
+                            data.widthIn(), data.widthIn(), data.isStrict(), e.notes(), e.quantity()));
+                    try { seedBankSerializer.save(seedBank); } catch (Exception ignored) {}
+                    break;
+                }
+            }
+            // Propagate to all other open beds
+            for (Tab t : tabPane.getTabs()) {
+                if (t.getContent() instanceof BedEditorPane other && other != editor) {
+                    other.applySpeciesEdit(oldType, oldName, data);
+                }
+            }
+        });
 
         Tab tab = new Tab(config.displayName(), editor);
         tab.setOnCloseRequest(event -> {

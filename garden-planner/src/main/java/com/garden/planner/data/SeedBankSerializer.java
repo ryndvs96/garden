@@ -36,7 +36,8 @@ public class SeedBankSerializer {
                     node.path("widthIn").asInt(12),
                     node.path("heightIn").asInt(12),
                     node.path("isStrict").asBoolean(true),
-                    node.path("notes").asText("")
+                    node.path("notes").asText(""),
+                    node.path("quantity").asInt(25)
             ));
         }
         return bank;
@@ -57,6 +58,7 @@ public class SeedBankSerializer {
             node.put("heightIn", e.heightIn());
             node.put("isStrict", e.isStrict());
             node.put("notes", e.notes());
+            node.put("quantity", e.quantity());
             entries.add(node);
         }
 

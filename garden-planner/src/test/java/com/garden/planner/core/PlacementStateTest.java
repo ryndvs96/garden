@@ -18,8 +18,8 @@ class PlacementStateTest {
 
     @BeforeEach
     void setUp() {
-        strictPlant = new PlantInstance("Back", "Tomato", "Cherry Tomato", 6, 36, true, 1, "T");
-        loosePlant = new PlantInstance("Back", "Herb", "Basil", 3, 12, false, 1, "B");
+        strictPlant = PlantInstance.builder().zone("Back").plantType("Tomato").plantName("Cherry Tomato").widthIn(6).heightIn(36).isStrict(true).instanceIdx(1).code("T").build();
+        loosePlant  = PlantInstance.builder().zone("Back").plantType("Herb").plantName("Basil").widthIn(3).heightIn(12).isStrict(false).instanceIdx(1).code("B").build();
         emptyState = new PlacementState(List.of(), List.of(strictPlant, loosePlant),
                 HexGrid.GRID_ROWS, HexGrid.GRID_COLS, PenaltyMode.CELL);
     }
