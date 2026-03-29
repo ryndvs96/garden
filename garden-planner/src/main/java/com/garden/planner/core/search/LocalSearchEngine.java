@@ -145,13 +145,20 @@ public class LocalSearchEngine implements SearchEngine {
                         bestOrig = ppCand;
                         bestNew = ir.pp;
                     }
+
+                    // If allowRemove: dropping the plant entirely is a valid move
+                    if (config.allowRemove() && rdelta > 0 && rdelta > bestNet) {
+                        bestNet = rdelta;
+                        bestOrig = ppCand;
+                        bestNew = null; // null = drop, don't re-insert
+                    }
                 }
 
                 if (bestOrig != null) {
                     int idx = state.getPlaced().indexOf(bestOrig);
                     if (idx >= 0) {
                         state.removePlant(idx);
-                        state.addPlant(bestNew);
+                        if (bestNew != null) state.addPlant(bestNew);
                         if (bestNet > 0) strictImproved = true;
                     }
                 }
@@ -214,6 +221,41 @@ public class LocalSearchEngine implements SearchEngine {
             if (ir.pp != null && ir.delta > 0) {
                 state.addPlant(ir.pp);
             }
+        }
+
+        // Neighbor polish: exhaustively try all 8 1-cell shifts per plant until no improvement.
+        // Terminates naturally (strict score improvement only, bounded state space).
+        // maxPasses guard is defensive — in practice the loop exits via !polishImproved.
+        int[][] dirs = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
+        int maxPolishPasses = state.getPlaced().size() + 1;
+        for (int pass = 0; pass < maxPolishPasses; pass++) {
+            boolean polishImproved = false;
+            List<PlacedPlant> polishSnapshot = new ArrayList<>(state.getPlaced());
+            for (PlacedPlant pp : polishSnapshot) {
+                if (pp.locked()) continue;
+                int curIdx = state.getPlaced().indexOf(pp);
+                if (curIdx < 0) continue;
+                double rd = state.removeDelta(curIdx);
+                state.removePlant(curIdx);
+                PlacedPlant bestNeighbor = null;
+                double bestNet = 0;
+                for (int[] d : dirs) {
+                    int nr = pp.row() + d[0];
+                    int nc = pp.col() + d[1];
+                    if (nr < 0 || nr >= state.getGridRows() || nc < 0 || nc >= state.getGridCols()) continue;
+                    PlacedPlant neighbor = makePlacedPlant(pp.plant(), nr, nc, state.getGridRows(), state.getGridCols());
+                    if (neighbor == null) continue;
+                    double net = rd + state.addDelta(neighbor);
+                    if (net > bestNet) { bestNet = net; bestNeighbor = neighbor; }
+                }
+                if (bestNeighbor != null) {
+                    state.addPlant(bestNeighbor.withLocked(pp.locked()));
+                    polishImproved = true;
+                } else {
+                    state.addPlant(pp);
+                }
+            }
+            if (!polishImproved) break;
         }
 
         // CAS-based global best update — use fullScore() via snapshot to avoid incremental drift

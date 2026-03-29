@@ -95,4 +95,51 @@ class RegenerateTest {
                     .isFalse();
         }
     }
+
+    /**
+     * cleanupOverlaps skips loose plants, so without allowRemove they stay heavily overlapping
+     * and cells score 0 instead of +2. A 4×6 grid is given 8 loose marigolds (widthIn=3,
+     * footprint≈7 cells) — far more than the grid can absorb cleanly. With allowRemove=true
+     * the search drops enough plants that remaining ones score +2 per cell, beating the
+     * forced all-in result.
+     */
+    @Test
+    void allowRemove_dropsExcessLoosePlantsForBetterScore() {
+        int rows = 4, cols = 6;
+
+        List<PlantInstance> plants = new java.util.ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            plants.add(PlantInstance.builder()
+                    .zone("Any").plantType("Flower").plantName("Marigold" + i)
+                    .widthIn(3).heightIn(12).isStrict(false).instanceIdx(i).code("MG")
+                    .build());
+        }
+
+        SearchConfig base = SearchConfig.defaults()
+                .nStarts(10).nIters(300).baseSeed(42L)
+                .gridRows(rows).gridCols(cols)
+                .fixedPlants(List.of())
+                .build();
+
+        SearchResult forced = new LocalSearchEngine()
+                .search(plants, base.toBuilder().allowRemove(false).build(),
+                        new SearchMetrics(), new AtomicBoolean(false));
+        double forcedScore = forced.state().snapshot().getScore();
+
+        SearchResult trimmed = new LocalSearchEngine()
+                .search(plants, base.toBuilder().allowRemove(true).build(),
+                        new SearchMetrics(), new AtomicBoolean(false));
+        double trimmedScore = trimmed.state().snapshot().getScore();
+
+        assertThat(trimmedScore)
+                .as("allowRemove should yield a better score (%.2f) than forcing all 8 loose plants (%.2f)",
+                        trimmedScore, forcedScore)
+                .isGreaterThan(forcedScore);
+
+        int placedCount = (int) trimmed.state().getPlaced().stream()
+                .filter(pp -> !pp.locked()).count();
+        assertThat(placedCount)
+                .as("some loose plants should have been dropped (placed=%d, total=8)", placedCount)
+                .isLessThan(8);
+    }
 }

@@ -18,18 +18,20 @@ public final class SearchConfig {
     private final int gridCols;
     private final List<PlacedPlant> fixedPlants;
     private final List<PlacedPlant> warmStart;
+    private final boolean allowRemove;
 
     private SearchConfig(Builder b) {
-        this.nStarts     = b.nStarts;
-        this.nIters      = b.nIters;
-        this.penaltyMode = b.penaltyMode;
-        this.timeoutMs   = b.timeoutMs;
-        this.baseSeed    = b.baseSeed;
-        this.nPositions  = b.nPositions;
-        this.gridRows    = b.gridRows;
-        this.gridCols    = b.gridCols;
-        this.fixedPlants = List.copyOf(b.fixedPlants);
-        this.warmStart   = List.copyOf(b.warmStart);
+        this.nStarts      = b.nStarts;
+        this.nIters       = b.nIters;
+        this.penaltyMode  = b.penaltyMode;
+        this.timeoutMs    = b.timeoutMs;
+        this.baseSeed     = b.baseSeed;
+        this.nPositions   = b.nPositions;
+        this.gridRows     = b.gridRows;
+        this.gridCols     = b.gridCols;
+        this.fixedPlants  = List.copyOf(b.fixedPlants);
+        this.warmStart    = List.copyOf(b.warmStart);
+        this.allowRemove  = b.allowRemove;
     }
 
     // ── Accessors ──────────────────────────────────────────────────────────────
@@ -44,6 +46,7 @@ public final class SearchConfig {
     public int             gridCols()    { return gridCols; }
     public List<PlacedPlant> fixedPlants() { return fixedPlants; }
     public List<PlacedPlant> warmStart()   { return warmStart; }
+    public boolean           allowRemove() { return allowRemove; }
 
     // ── Derived copies ─────────────────────────────────────────────────────────
 
@@ -64,7 +67,8 @@ public final class SearchConfig {
                 .gridRows(gridRows)
                 .gridCols(gridCols)
                 .fixedPlants(fixedPlants)
-                .warmStart(warmStart);
+                .warmStart(warmStart)
+                .allowRemove(allowRemove);
     }
 
     // ── Entry points ───────────────────────────────────────────────────────────
@@ -102,6 +106,7 @@ public final class SearchConfig {
         private int gridCols;
         private List<PlacedPlant> fixedPlants = List.of();
         private List<PlacedPlant> warmStart   = List.of();
+        private boolean allowRemove            = false;
 
         private Builder() {}
 
@@ -113,8 +118,9 @@ public final class SearchConfig {
         public Builder nPositions(int v)            { this.nPositions = v;  return this; }
         public Builder gridRows(int v)              { this.gridRows = v;    return this; }
         public Builder gridCols(int v)              { this.gridCols = v;    return this; }
-        public Builder fixedPlants(List<PlacedPlant> v) { this.fixedPlants = v; return this; }
-        public Builder warmStart(List<PlacedPlant> v)   { this.warmStart = v;   return this; }
+        public Builder fixedPlants(List<PlacedPlant> v)  { this.fixedPlants = v;   return this; }
+        public Builder warmStart(List<PlacedPlant> v)    { this.warmStart = v;     return this; }
+        public Builder allowRemove(boolean v)            { this.allowRemove = v;   return this; }
 
         public SearchConfig build() {
             return new SearchConfig(this);

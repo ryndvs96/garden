@@ -104,11 +104,11 @@ public class BedEditorPane extends BorderPane {
         Button zoomInBtn  = new Button("+");
         Button zoomOutBtn = new Button("\u2013");
 
-        Button flowerFillBtn = new Button("Flower Fill");
-        Button undoBtn       = new Button("Undo");
+        Button randomFillBtn  = new Button("Random Fill");
+        Button undoBtn        = new Button("Undo");
 
         regenBtn.setOnAction(e -> doRegenerate());
-        flowerFillBtn.setOnAction(e -> doFlowerFill());
+        randomFillBtn.setOnAction(e -> doRandomFill());
         undoBtn.setOnAction(e -> doUndo());
         editBtn.setOnAction(e -> doEditPlant());
         zoomInBtn.setOnAction(e -> canvas.zoom(1.25));
@@ -120,7 +120,7 @@ public class BedEditorPane extends BorderPane {
             }
         });
 
-        HBox toolbar = new HBox(8, regenBtn, flowerFillBtn,
+        HBox toolbar = new HBox(8, regenBtn, randomFillBtn,
                 new Separator(javafx.geometry.Orientation.VERTICAL),
                 undoBtn,
                 new Separator(javafx.geometry.Orientation.VERTICAL),
@@ -589,107 +589,99 @@ public class BedEditorPane extends BorderPane {
             showError(failed + " plant(s) could not be placed — the bed is full.");
     }
 
-    private void doFlowerFill() {
+    private void doRandomFill() {
         if (state == null) return;
-        pushUndo();
-
-        List<SeedEntry> flowerSeeds = seedBank.observableEntries().stream()
-                .filter(e -> e.plantType().toLowerCase().startsWith("flower"))
-                .toList();
-        if (flowerSeeds.isEmpty()) {
-            showError("No flower plants in seed bank.");
+        if (seedBank.observableEntries().isEmpty()) {
+            showError("Seed bank is empty — add some plants first.");
             return;
         }
 
-        // Track which plants were unlocked so we can restore them afterward
-        List<Integer> originallyUnlocked = new ArrayList<>();
-        for (int i = 0; i < state.getPlaced().size(); i++) {
-            if (!state.getPlaced().get(i).locked()) originallyUnlocked.add(i);
+        // --- Dialog ---
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Random Fill");
+        dlg.setHeaderText(null);
+        dlg.initOwner(stage);
+
+        ToggleGroup filterGroup = new ToggleGroup();
+        RadioButton allBtn     = new RadioButton("All plants");
+        RadioButton flowersBtn = new RadioButton("Flowers only");
+        allBtn.setToggleGroup(filterGroup);
+        flowersBtn.setToggleGroup(filterGroup);
+        allBtn.setSelected(true);
+
+        Slider compact = new Slider(0, 1, 0.5);
+        compact.setShowTickMarks(true);
+        compact.setMajorTickUnit(0.5);
+        HBox sliderRow = new HBox(8, new Label("Sparse"), compact, new Label("Max"));
+        sliderRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(compact, Priority.ALWAYS);
+
+        VBox content = new VBox(12,
+                new HBox(12, allBtn, flowersBtn),
+                new Label("Compactness:"),
+                sliderRow);
+        content.setPadding(new Insets(10));
+        dlg.getDialogPane().setContent(content);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        if (dlg.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
+
+        boolean flowersOnly = flowersBtn.isSelected();
+        double compactness  = compact.getValue(); // 0.0 → 1.0
+
+        // --- Build candidate plant list ---
+        List<SeedEntry> entries = seedBank.observableEntries().stream()
+                .filter(e -> !flowersOnly || e.plantType().toLowerCase().startsWith("flower"))
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        if (entries.isEmpty()) {
+            showError("No matching plants in seed bank.");
+            return;
         }
 
-        // Snapshot with all existing plants locked — background thread works on this
-        List<PlacedPlant> lockedList = state.getPlaced().stream()
-                .map(pp -> pp.withLocked(true))
-                .toList();
-        PlacementState snapshot = new PlacementState(
-                lockedList, List.of(),
-                state.getGridRows(), state.getGridCols(), state.getPenaltyMode());
+        Collections.shuffle(entries, new Random());
 
-        int instanceBase = nextInstanceIdx();
-        SearchMetrics metrics = new SearchMetrics();
-        AtomicBoolean cancelled = new AtomicBoolean(false);
-        java.util.concurrent.atomic.AtomicInteger plantsPlaced = new java.util.concurrent.atomic.AtomicInteger(0);
+        // Candidate pool: 20% (sparse) → 100% (max) of bed cells
+        int bedCells = state.getGridRows() * state.getGridCols();
+        int target   = (int) (bedCells * (0.2 + compactness * 0.8));
+        List<PlantInstance> toPlace = new ArrayList<>();
+        int estTotal = 0;
+        int idx = nextInstanceIdx();
 
-        searchOverlay.start(cancelled, () -> { cancelled.set(true); searchOverlay.stop(); },
-                () -> String.format("Filling flowers... %d placed  \u2022  %.0f states/sec  \u2022  %.1fs",
-                        plantsPlaced.get(), metrics.statesPerSecond(), metrics.elapsedSeconds()));
-
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
-            int lastIdx = -1;
-            int rows = snapshot.getGridRows(), cols = snapshot.getGridCols();
-            long deadline = System.currentTimeMillis() + 30_000L;
-
-            while (!cancelled.get() && System.currentTimeMillis() < deadline) {
-                // Pass 1: non-overlapping positions only
-                PlacedPlant bestPp = null;
-                double bestDelta = Double.NEGATIVE_INFINITY;
-                for (SeedEntry flowerSeed : flowerSeeds) {
-                    PlantInstance candidate = seedEntryToInstance(flowerSeed, instanceBase + plantsPlaced.get());
-                    for (int r = 0; r < rows; r++) {
-                        for (int c = 0; c < cols; c++) {
-                            if (snapshot.isCenterOccupied(r, c)) continue;
-                            PlacedPlant pp = LocalSearchEngine.makePlacedPlant(candidate, r, c, rows, cols);
-                            if (pp == null || snapshot.hasAnyCellOverlap(pp)) continue;
-                            metrics.recordState();
-                            double delta = snapshot.addDelta(pp);
-                            if (delta > bestDelta) { bestDelta = delta; bestPp = pp; }
-                        }
-                    }
-                }
-
-                // Pass 2: allow overlapping only if no non-overlapping option was found
-                if (bestPp == null) {
-                    for (SeedEntry flowerSeed : flowerSeeds) {
-                        PlantInstance candidate = seedEntryToInstance(flowerSeed, instanceBase + plantsPlaced.get());
-                        for (int r = 0; r < rows; r++) {
-                            for (int c = 0; c < cols; c++) {
-                                if (snapshot.isCenterOccupied(r, c)) continue;
-                                PlacedPlant pp = LocalSearchEngine.makePlacedPlant(candidate, r, c, rows, cols);
-                                if (pp == null) continue;
-                                metrics.recordState();
-                                double delta = snapshot.addDelta(pp);
-                                if (delta > bestDelta) { bestDelta = delta; bestPp = pp; }
-                            }
-                        }
-                    }
-                }
-
-                if (bestPp == null || bestDelta <= PlacementState.W_N_PLACED) break;  // no unique species can be placed
-
-                snapshot.addPlant(bestPp);  // NOT locked
-                metrics.updateBest(snapshot.getScore());
-                lastIdx = snapshot.getPlaced().size() - 1;
-                plantsPlaced.incrementAndGet();
+        // Round-robin across entries (one per species per pass) to maximise variety
+        int[] remaining = new int[entries.size()];
+        for (int i = 0; i < entries.size(); i++) remaining[i] = Math.max(1, entries.get(i).quantity());
+        outer:
+        while (true) {
+            boolean anyAdded = false;
+            for (int i = 0; i < entries.size(); i++) {
+                if (remaining[i] <= 0) continue;
+                SeedEntry entry = entries.get(i);
+                int r = entry.widthIn() / 2;
+                int footprint = r == 0 ? 1 : 3 * r * (r + 1) + 1;
+                toPlace.add(seedEntryToInstance(entry, idx++));
+                estTotal += footprint;
+                remaining[i]--;
+                anyAdded = true;
+                if (estTotal >= target) break outer;
             }
+            if (!anyAdded) break;
+        }
 
-            final int finalPlaced = plantsPlaced.get();
-            final int finalLastIdx = lastIdx;
-            Platform.runLater(() -> {
-                searchOverlay.stop();
-                // Restore unlock state (indices stable — we only appended)
-                for (int i : originallyUnlocked)
-                    snapshot.getPlaced().set(i, snapshot.getPlaced().get(i).withLocked(false));
-                state = snapshot;
-                setDirty(true);
-                canvas.setState(state);
-                statsPanel.update(state);
-                selectPlant(-1);
-                if (finalPlaced == 0)
-                    showError("No space left in bed for flowers.");
-            });
-        });
-        executor.shutdown();
+        pushUndo();
+
+        // Reset to locked plants only, then search — allowRemove lets optimizer trim excess
+        List<PlacedPlant> locked = state.getPlaced().stream().filter(PlacedPlant::locked).toList();
+        state = new PlacementState(locked, List.of(), state.getGridRows(), state.getGridCols(), state.getPenaltyMode());
+        canvas.setState(state);
+
+        double previousScore = undoStack.peek().getScore();
+        SearchConfig cfg = SearchConfig.defaults()
+                .gridRows(state.getGridRows())
+                .gridCols(state.getGridCols())
+                .fixedPlants(locked)
+                .allowRemove(true)
+                .build();
+        runSearch(toPlace, cfg, previousScore);
     }
 
     private PlacedPlant findBestScorePlacement(PlantInstance plant) {
