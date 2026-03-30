@@ -97,49 +97,40 @@ class RegenerateTest {
     }
 
     /**
-     * cleanupOverlaps skips loose plants, so without allowRemove they stay heavily overlapping
-     * and cells score 0 instead of +2. A 4×6 grid is given 8 loose marigolds (widthIn=3,
-     * footprint≈7 cells) — far more than the grid can absorb cleanly. With allowRemove=true
-     * the search drops enough plants that remaining ones score +2 per cell, beating the
-     * forced all-in result.
+     * Regression test for LNS kick attrition bug:
+     * When allowRemove=false (the default for Regenerate), plants removed by LNS kicks
+     * must always be re-inserted — they should never silently end up in unplaced.
+     *
+     * Uses a dense 6×8 grid with 12 loose plants and enough iterations to trigger LNS kicks.
      */
     @Test
-    void allowRemove_dropsExcessLoosePlantsForBetterScore() {
-        int rows = 4, cols = 6;
+    void regenerate_allPlantsRemainPlaced_withAllowRemoveFalse() {
+        int rows = 6, cols = 8;
+        int nPlants = 12;
 
         List<PlantInstance> plants = new java.util.ArrayList<>();
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < nPlants; i++) {
             plants.add(PlantInstance.builder()
                     .zone("Any").plantType("Flower").plantName("Marigold" + i)
-                    .widthIn(3).heightIn(12).isStrict(false).instanceIdx(i).code("MG")
+                    .widthIn(6).heightIn(12).isStrict(false).instanceIdx(i).code("MG")
                     .build());
         }
 
-        SearchConfig base = SearchConfig.defaults()
-                .nStarts(10).nIters(300).baseSeed(42L)
+        SearchConfig config = SearchConfig.defaults()
+                .nStarts(5).nIters(500).baseSeed(42L)
                 .gridRows(rows).gridCols(cols)
                 .fixedPlants(List.of())
+                .allowRemove(false)
                 .build();
 
-        SearchResult forced = new LocalSearchEngine()
-                .search(plants, base.toBuilder().allowRemove(false).build(),
-                        new SearchMetrics(), new AtomicBoolean(false));
-        double forcedScore = forced.state().snapshot().getScore();
+        SearchResult result = new LocalSearchEngine()
+                .search(plants, config, new SearchMetrics(), new AtomicBoolean(false));
 
-        SearchResult trimmed = new LocalSearchEngine()
-                .search(plants, base.toBuilder().allowRemove(true).build(),
-                        new SearchMetrics(), new AtomicBoolean(false));
-        double trimmedScore = trimmed.state().snapshot().getScore();
-
-        assertThat(trimmedScore)
-                .as("allowRemove should yield a better score (%.2f) than forcing all 8 loose plants (%.2f)",
-                        trimmedScore, forcedScore)
-                .isGreaterThan(forcedScore);
-
-        int placedCount = (int) trimmed.state().getPlaced().stream()
+        int placedCount = (int) result.state().getPlaced().stream()
                 .filter(pp -> !pp.locked()).count();
         assertThat(placedCount)
-                .as("some loose plants should have been dropped (placed=%d, total=8)", placedCount)
-                .isLessThan(8);
+                .as("all %d plants should remain placed (none lost to LNS kick attrition), got %d",
+                        nPlants, placedCount)
+                .isEqualTo(nPlants);
     }
 }

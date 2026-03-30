@@ -203,7 +203,8 @@ public class LocalSearchEngine implements SearchEngine {
                         PositionCache pc = posCache.get(posKey(plant));
                         InsertResult ir = bestInsertPosition(state, plant, rng, config.nPositions(),
                                 pc != null ? pc.preferred : List.of(), pc != null ? pc.nonPreferred : List.of());
-                        if (ir.pp != null && ir.delta > 0) {
+                        // Force re-insert when allowRemove=false; kicked plants must stay placed.
+                        if (ir.pp != null && (ir.delta > 0 || !config.allowRemove())) {
                             state.addPlant(ir.pp);
                         }
                     }
@@ -256,6 +257,17 @@ public class LocalSearchEngine implements SearchEngine {
                 }
             }
             if (!polishImproved) break;
+        }
+
+        // Safety net: when allowRemove=false, force-insert any plants still stranded in unplaced.
+        // The LNS re-insert above handles most cases; this catches any edge cases.
+        if (!config.allowRemove()) {
+            for (PlantInstance plant : new ArrayList<>(state.getUnplaced())) {
+                PositionCache pc = posCache.get(posKey(plant));
+                InsertResult ir = bestInsertPosition(state, plant, rng, config.nPositions(),
+                        pc != null ? pc.preferred : List.of(), pc != null ? pc.nonPreferred : List.of());
+                if (ir.pp != null) state.addPlant(ir.pp); // force regardless of delta
+            }
         }
 
         // CAS-based global best update — use fullScore() via snapshot to avoid incremental drift
