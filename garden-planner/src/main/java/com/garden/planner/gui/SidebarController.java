@@ -71,6 +71,10 @@ public class SidebarController extends BorderPane {
         seedBankController.setOnAddSeed(cb);
     }
 
+    public void setOnDeleteEntry(Consumer<SeedEntry> cb) {
+        seedBankController.setOnDeleteEntry(cb);
+    }
+
     // --- delegate callbacks to ExplorerPanel ---
 
     public void setOnOpenBed(Consumer<BedConfig> cb)     { explorerPanel.setOnOpenBed(cb); }

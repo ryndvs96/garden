@@ -65,6 +65,42 @@ public class MainController extends BorderPane {
         sidebar     = new SidebarController(seedBank);
         activityBar.setOnViewChanged(sidebar::showView);
         wireSidebarCallbacks();
+        sidebar.setOnDeleteEntry(entry -> {
+            // Collect open beds that contain this plant species
+            List<BedEditorPane> inUse = tabPane.getTabs().stream()
+                    .filter(t -> t.getContent() instanceof BedEditorPane)
+                    .map(t -> (BedEditorPane) t.getContent())
+                    .filter(ed -> ed.containsSpecies(entry.plantType(), entry.plantName()))
+                    .toList();
+
+            if (!inUse.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.initOwner(stage);
+                alert.setTitle("Plant In Use");
+                alert.setHeaderText("\"" + entry.plantName() + "\" is placed in "
+                        + inUse.size() + " open bed" + (inUse.size() == 1 ? "" : "s") + ".");
+                alert.setContentText("Remove it from those beds too?");
+                ButtonType deleteAndRemove = new ButtonType("Delete & Remove from Beds");
+                ButtonType deleteOnly      = new ButtonType("Delete Seed Only");
+                ButtonType cancel          = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+                alert.getButtonTypes().setAll(deleteAndRemove, deleteOnly, cancel);
+                alert.showAndWait().ifPresent(bt -> {
+                    if (bt == deleteAndRemove) {
+                        inUse.forEach(ed -> ed.removePlantsBySpecies(entry.plantType(), entry.plantName()));
+                        seedBank.observableEntries().remove(entry);
+                        try { seedBankSerializer.save(seedBank); } catch (Exception ignored) {}
+                    } else if (bt == deleteOnly) {
+                        seedBank.observableEntries().remove(entry);
+                        try { seedBankSerializer.save(seedBank); } catch (Exception ignored) {}
+                    }
+                    // cancel — do nothing
+                });
+            } else {
+                seedBank.observableEntries().remove(entry);
+                try { seedBankSerializer.save(seedBank); } catch (Exception ignored) {}
+            }
+        });
+
         sidebar.setOnAddSeed(entry -> {
             Tab sel = tabPane.getSelectionModel().getSelectedItem();
             if (sel == null || !(sel.getContent() instanceof BedEditorPane editor)) return;

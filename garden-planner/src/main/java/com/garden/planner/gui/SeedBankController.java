@@ -48,11 +48,13 @@ public class SeedBankController extends VBox {
     private final SeedBankSerializer serializer = new SeedBankSerializer();
     private final PauseTransition savePause = new PauseTransition(Duration.millis(500));
     private Consumer<SeedEntry> onAddSeed;
+    private Consumer<SeedEntry> onDeleteEntry;
 
     private double dragStartY;
     private double dragStartInfoHeight;
 
-    public void setOnAddSeed(Consumer<SeedEntry> cb) { this.onAddSeed = cb; }
+    public void setOnAddSeed(Consumer<SeedEntry> cb)    { this.onAddSeed    = cb; }
+    public void setOnDeleteEntry(Consumer<SeedEntry> cb) { this.onDeleteEntry = cb; }
 
     @SuppressWarnings("this-escape")
     public SeedBankController(SeedBank seedBank) {
@@ -170,7 +172,10 @@ public class SeedBankController extends VBox {
         });
         deleteBtn.setOnAction(e -> {
             SeedEntry sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) {
+            if (sel == null) return;
+            if (onDeleteEntry != null) {
+                onDeleteEntry.accept(sel);
+            } else {
                 seedBank.observableEntries().remove(sel);
                 triggerAutoSave();
             }

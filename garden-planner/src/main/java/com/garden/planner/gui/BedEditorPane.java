@@ -844,6 +844,35 @@ public class BedEditorPane extends BorderPane {
         }
     }
 
+    /** True if any placed plant matches (plantType, plantName). Used to detect seed-bank-in-use. */
+    public boolean containsSpecies(String plantType, String plantName) {
+        if (state == null) return false;
+        for (PlacedPlant pp : state.getPlaced()) {
+            if (pp.plant().plantType().equals(plantType) && pp.plant().plantName().equals(plantName))
+                return true;
+        }
+        return false;
+    }
+
+    /** Remove all placed plants matching (plantType, plantName) and mark the bed dirty. */
+    public void removePlantsBySpecies(String plantType, String plantName) {
+        if (state == null) return;
+        boolean any = false;
+        for (int i = state.getPlaced().size() - 1; i >= 0; i--) {
+            PlacedPlant pp = state.getPlaced().get(i);
+            if (pp.plant().plantType().equals(plantType) && pp.plant().plantName().equals(plantName)) {
+                if (!any) { pushUndo(); any = true; }
+                state.removePlant(i);
+            }
+        }
+        if (any) {
+            selectPlant(-1);
+            setDirty(true);
+            statsPanel.update(state);
+            canvas.redraw();
+        }
+    }
+
     /** Add a plant to state if a valid placement exists, otherwise show an error. */
     private void commitPlacement(PlantInstance plant, PlacedPlant placed) {
         if (placed != null) {
