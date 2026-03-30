@@ -36,7 +36,7 @@ public class PlantEditorDialog {
         TextField typeField = new TextField(existing != null ? existing.plantType() : "");
         TextField nameField = new TextField(existing != null ? existing.plantName() : "");
 
-        Spinner<Integer> widthSpinner = new Spinner<>(6, 36, existing != null ? existing.widthIn() : 12, 6);
+        Spinner<Integer> widthSpinner = new Spinner<>(3, 36, existing != null ? existing.widthIn() : 12, 1);
         widthSpinner.setEditable(true);
 
         CheckBox strictCheck = new CheckBox();
