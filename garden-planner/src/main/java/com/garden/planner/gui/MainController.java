@@ -16,6 +16,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -158,8 +160,10 @@ public class MainController extends BorderPane {
         sidebar.setOnAddZone(this::doAddZone);
         sidebar.setOnRenameBed(this::doRenameBed);
         sidebar.setOnDeleteBed(this::doDeleteBed);
+        sidebar.setOnDuplicateBed(this::doDuplicateBed);
         sidebar.setOnRenameZone(this::doRenameZone);
         sidebar.setOnDeleteZone(this::doDeleteZone);
+        sidebar.setOnDuplicateZone(this::doDuplicateZone);
     }
 
     // -------------------------------------------------------------------------
@@ -421,6 +425,72 @@ public class MainController extends BorderPane {
             Tab tab = openTabs.remove(bed.id());
             if (tab != null) tabPane.getTabs().remove(tab);
             currentProject.removeBed(bed.id());
+            saveManifest();
+            sidebar.setProject(currentProject);
+        });
+    }
+
+    public void doDuplicateBed(BedConfig source) {
+        if (currentProject == null) return;
+        // Find the zone that contains this bed
+        GardenZone sourceZone = currentProject.getZones().stream()
+                .filter(z -> z.beds().contains(source))
+                .findFirst().orElse(null);
+        if (sourceZone == null) return;
+
+        TextInputDialog dlg = new TextInputDialog("Copy of " + source.displayName());
+        dlg.setTitle("Duplicate Bed");
+        dlg.setHeaderText(null);
+        dlg.setContentText("New bed name:");
+        dlg.initOwner(stage);
+        dlg.showAndWait().ifPresent(newName -> {
+            if (newName.isBlank()) return;
+            boolean nameExists = sourceZone.beds().stream()
+                    .anyMatch(b -> b.displayName().equalsIgnoreCase(newName.trim()));
+            if (nameExists) {
+                showError("A bed named \"" + newName.trim() + "\" already exists in this zone.");
+                return;
+            }
+            BedConfig newBed = currentProject.addBed(sourceZone.id(), newName.trim());
+            Path srcFile = currentProject.bedsDir().resolve(source.fileName());
+            Path dstFile = currentProject.bedsDir().resolve(newBed.fileName());
+            if (srcFile.toFile().exists()) {
+                try { Files.copy(srcFile, dstFile); } catch (IOException e) {
+                    showError("Failed to copy bed file: " + e.getMessage());
+                }
+            }
+            saveManifest();
+            sidebar.setProject(currentProject);
+            openBed(newBed);
+        });
+    }
+
+    public void doDuplicateZone(GardenZone source) {
+        if (currentProject == null) return;
+        TextInputDialog dlg = new TextInputDialog("Copy of " + source.name());
+        dlg.setTitle("Duplicate Zone");
+        dlg.setHeaderText(null);
+        dlg.setContentText("New zone name:");
+        dlg.initOwner(stage);
+        dlg.showAndWait().ifPresent(newName -> {
+            if (newName.isBlank()) return;
+            boolean nameExists = currentProject.getZones().stream()
+                    .anyMatch(z -> z.name().equalsIgnoreCase(newName.trim()));
+            if (nameExists) {
+                showError("A zone named \"" + newName.trim() + "\" already exists.");
+                return;
+            }
+            GardenZone newZone = currentProject.addZone(newName.trim());
+            for (BedConfig srcBed : source.beds()) {
+                BedConfig newBed = currentProject.addBed(newZone.id(), srcBed.displayName());
+                Path srcFile = currentProject.bedsDir().resolve(srcBed.fileName());
+                Path dstFile = currentProject.bedsDir().resolve(newBed.fileName());
+                if (srcFile.toFile().exists()) {
+                    try { Files.copy(srcFile, dstFile); } catch (IOException e) {
+                        showError("Failed to copy \"" + srcBed.displayName() + "\": " + e.getMessage());
+                    }
+                }
+            }
             saveManifest();
             sidebar.setProject(currentProject);
         });

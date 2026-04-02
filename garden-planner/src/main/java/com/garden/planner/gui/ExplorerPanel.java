@@ -23,8 +23,10 @@ public class ExplorerPanel extends VBox {
     private Runnable            onAddZone;
     private Consumer<BedConfig>    onRenameBed;
     private Consumer<BedConfig>    onDeleteBed;
+    private Consumer<BedConfig>    onDuplicateBed;
     private Consumer<GardenZone>   onRenameZone;
     private Consumer<GardenZone>   onDeleteZone;
+    private Consumer<GardenZone>   onDuplicateZone;
 
     /** Zone IDs that were expanded before the last setProject() call. */
     private final Set<String> expandedZoneIds = new HashSet<>();
@@ -112,25 +114,29 @@ public class ExplorerPanel extends VBox {
 
     private ContextMenu buildZoneMenu(GardenZone zone) {
         ContextMenu menu = new ContextMenu();
-        MenuItem addBedItem  = new MenuItem("Add Bed...");
-        MenuItem renameItem  = new MenuItem("Rename Zone...");
-        MenuItem deleteItem  = new MenuItem("Delete Zone");
-        addBedItem.setOnAction(e -> { if (onAddBed    != null) onAddBed.accept(zone.id()); });
-        renameItem.setOnAction(e -> { if (onRenameZone != null) onRenameZone.accept(zone); });
-        deleteItem.setOnAction(e -> { if (onDeleteZone != null) onDeleteZone.accept(zone); });
-        menu.getItems().addAll(addBedItem, renameItem, deleteItem);
+        MenuItem addBedItem      = new MenuItem("Add Bed...");
+        MenuItem duplicateItem   = new MenuItem("Duplicate Zone...");
+        MenuItem renameItem      = new MenuItem("Rename Zone...");
+        MenuItem deleteItem      = new MenuItem("Delete Zone");
+        addBedItem.setOnAction(e ->    { if (onAddBed       != null) onAddBed.accept(zone.id()); });
+        duplicateItem.setOnAction(e -> { if (onDuplicateZone != null) onDuplicateZone.accept(zone); });
+        renameItem.setOnAction(e ->    { if (onRenameZone   != null) onRenameZone.accept(zone); });
+        deleteItem.setOnAction(e ->    { if (onDeleteZone   != null) onDeleteZone.accept(zone); });
+        menu.getItems().addAll(addBedItem, duplicateItem, new SeparatorMenuItem(), renameItem, deleteItem);
         return menu;
     }
 
     private ContextMenu buildBedMenu(BedConfig bed) {
         ContextMenu menu = new ContextMenu();
-        MenuItem openItem   = new MenuItem("Open");
-        MenuItem renameItem = new MenuItem("Rename...");
-        MenuItem deleteItem = new MenuItem("Delete from Project");
-        openItem.setOnAction(e ->   { if (onOpenBed   != null) onOpenBed.accept(bed); });
-        renameItem.setOnAction(e -> { if (onRenameBed != null) onRenameBed.accept(bed); });
-        deleteItem.setOnAction(e -> { if (onDeleteBed != null) onDeleteBed.accept(bed); });
-        menu.getItems().addAll(openItem, renameItem, deleteItem);
+        MenuItem openItem      = new MenuItem("Open");
+        MenuItem duplicateItem = new MenuItem("Duplicate Bed...");
+        MenuItem renameItem    = new MenuItem("Rename...");
+        MenuItem deleteItem    = new MenuItem("Delete from Project");
+        openItem.setOnAction(e ->      { if (onOpenBed      != null) onOpenBed.accept(bed); });
+        duplicateItem.setOnAction(e -> { if (onDuplicateBed != null) onDuplicateBed.accept(bed); });
+        renameItem.setOnAction(e ->    { if (onRenameBed    != null) onRenameBed.accept(bed); });
+        deleteItem.setOnAction(e ->    { if (onDeleteBed    != null) onDeleteBed.accept(bed); });
+        menu.getItems().addAll(openItem, duplicateItem, new SeparatorMenuItem(), renameItem, deleteItem);
         return menu;
     }
 
@@ -141,8 +147,10 @@ public class ExplorerPanel extends VBox {
     public void setOnOpenBed(Consumer<BedConfig> cb)    { onOpenBed   = cb; }
     public void setOnAddBed(Consumer<String> cb)        { onAddBed    = cb; }
     public void setOnAddZone(Runnable cb)               { onAddZone   = cb; }
-    public void setOnRenameBed(Consumer<BedConfig> cb)  { onRenameBed = cb; }
-    public void setOnDeleteBed(Consumer<BedConfig> cb)  { onDeleteBed = cb; }
-    public void setOnRenameZone(Consumer<GardenZone> cb){ onRenameZone = cb; }
-    public void setOnDeleteZone(Consumer<GardenZone> cb){ onDeleteZone = cb; }
+    public void setOnRenameBed(Consumer<BedConfig> cb)      { onRenameBed    = cb; }
+    public void setOnDeleteBed(Consumer<BedConfig> cb)      { onDeleteBed    = cb; }
+    public void setOnDuplicateBed(Consumer<BedConfig> cb)   { onDuplicateBed = cb; }
+    public void setOnRenameZone(Consumer<GardenZone> cb)    { onRenameZone   = cb; }
+    public void setOnDeleteZone(Consumer<GardenZone> cb)    { onDeleteZone   = cb; }
+    public void setOnDuplicateZone(Consumer<GardenZone> cb) { onDuplicateZone = cb; }
 }

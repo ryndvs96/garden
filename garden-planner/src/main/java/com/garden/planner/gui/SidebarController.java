@@ -80,8 +80,10 @@ public class SidebarController extends BorderPane {
     public void setOnOpenBed(Consumer<BedConfig> cb)     { explorerPanel.setOnOpenBed(cb); }
     public void setOnAddBed(Consumer<String> cb)         { explorerPanel.setOnAddBed(cb); }
     public void setOnAddZone(Runnable cb)                { explorerPanel.setOnAddZone(cb); }
-    public void setOnRenameBed(Consumer<BedConfig> cb)   { explorerPanel.setOnRenameBed(cb); }
-    public void setOnDeleteBed(Consumer<BedConfig> cb)   { explorerPanel.setOnDeleteBed(cb); }
-    public void setOnRenameZone(Consumer<GardenZone> cb) { explorerPanel.setOnRenameZone(cb); }
-    public void setOnDeleteZone(Consumer<GardenZone> cb) { explorerPanel.setOnDeleteZone(cb); }
+    public void setOnRenameBed(Consumer<BedConfig> cb)      { explorerPanel.setOnRenameBed(cb); }
+    public void setOnDeleteBed(Consumer<BedConfig> cb)      { explorerPanel.setOnDeleteBed(cb); }
+    public void setOnDuplicateBed(Consumer<BedConfig> cb)   { explorerPanel.setOnDuplicateBed(cb); }
+    public void setOnRenameZone(Consumer<GardenZone> cb)    { explorerPanel.setOnRenameZone(cb); }
+    public void setOnDeleteZone(Consumer<GardenZone> cb)    { explorerPanel.setOnDeleteZone(cb); }
+    public void setOnDuplicateZone(Consumer<GardenZone> cb) { explorerPanel.setOnDuplicateZone(cb); }
 }
